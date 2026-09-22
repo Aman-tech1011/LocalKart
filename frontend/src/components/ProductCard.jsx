@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 
 export default function ProductCard({ product }) {
-  const imageUrl = product.images?.[0] || 'https://placehold.co/600x400?text=LocalKart';
+  const imageUrl = product.images?.[0] || product.image || 'https://placehold.co/600x400?text=LocalKart';
   const sellerName = typeof product.seller === 'object' ? product.seller.name : 'LocalKart seller';
 
   return (

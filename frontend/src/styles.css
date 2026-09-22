@@ -50,8 +50,57 @@ a {
   min-height: 100vh;
 }
 
+.site-footer {
+  margin-top: 24px;
+  padding: 34px max(28px, calc((100% - 1160px) / 2)) 20px;
+  background: #17243b;
+  color: white;
+}
+
+.footer-content,
+.footer-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.footer-brand .brand-wrap {
+  margin-bottom: 12px;
+}
+
+.footer-brand p {
+  max-width: 320px;
+  margin: 0;
+  color: #b6c4da;
+  line-height: 1.6;
+}
+
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 22px;
+}
+
+.footer-links a {
+  color: #dce6f7;
+  font-weight: 700;
+}
+
+.footer-links a:hover {
+  color: #93b7ff;
+}
+
+.footer-bottom {
+  margin-top: 28px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  color: #91a2bc;
+  font-size: 0.85rem;
+}
+
 .page-container {
-  max-width: 1200px;
+  max-width: 1320px;
   margin: 0 auto;
   padding: 24px 20px 60px;
 }
@@ -123,6 +172,125 @@ a {
 .btn-light {
   background: #eef4ff;
   color: var(--primary);
+}
+
+.top-search-section {
+  padding: 4px 0 2px;
+}
+
+.top-search-section .search-box {
+  max-width: 760px;
+  margin: 0 auto;
+  box-shadow: var(--shadow);
+}
+
+.item-carousel {
+  margin: 18px 0 8px;
+  padding: 24px 26px 26px;
+  background: #17243b;
+  border-radius: 24px;
+  color: white;
+  overflow: hidden;
+}
+
+.carousel-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.carousel-heading .eyebrow {
+  margin-bottom: 6px;
+  color: #93b7ff;
+}
+
+.carousel-heading h2 {
+  margin: 0;
+  font-size: clamp(1.35rem, 2.5vw, 2rem);
+}
+
+.carousel-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.carousel-button {
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: 1.25rem;
+}
+
+.carousel-button:hover:not(:disabled) {
+  background: var(--primary);
+}
+
+.carousel-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.carousel-viewport {
+  overflow: hidden;
+}
+
+.carousel-track {
+  display: flex;
+  transform: translateX(calc(var(--carousel-index, 0) * -33.333%));
+  transition: transform 0.45s ease;
+}
+
+.carousel-item {
+  position: relative;
+  flex: 0 0 calc(33.333% - 12px);
+  min-width: 0;
+  margin-right: 18px;
+  overflow: hidden;
+  border-radius: 16px;
+  background: #263650;
+}
+
+.carousel-item img {
+  width: 100%;
+  height: 170px;
+  object-fit: cover;
+  opacity: 0.82;
+}
+
+.carousel-item-content {
+  padding: 14px 16px 16px;
+}
+
+.carousel-item-content span {
+  color: #a9c5ff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.carousel-item-content h3 {
+  margin: 7px 0 9px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 1.05rem;
+}
+
+.carousel-item-content strong {
+  color: #ffffff;
+}
+
+.carousel-empty {
+  padding: 42px 12px;
+  border: 1px dashed rgba(255, 255, 255, 0.3);
+  border-radius: 16px;
+  color: #c4d0e5;
+  text-align: center;
 }
 
 .hero-section {
@@ -235,8 +403,11 @@ a {
 .featured-grid,
 .product-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 22px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: min(100%, 1060px);
+  margin-right: auto;
+  margin-left: auto;
+  gap: 20px;
 }
 
 .product-card {
@@ -248,7 +419,7 @@ a {
 
 .product-image {
   width: 100%;
-  height: 220px;
+  height: 175px;
   object-fit: cover;
 }
 
@@ -548,6 +719,39 @@ a {
 
   .hero-section {
     grid-template-columns: 1fr;
+  }
+
+  .featured-grid,
+  .product-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .item-carousel {
+    padding: 20px 16px;
+  }
+
+  .site-footer {
+    padding-right: 20px;
+    padding-left: 20px;
+  }
+
+  .footer-content,
+  .footer-bottom {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .footer-bottom {
+    gap: 8px;
+  }
+
+  .carousel-item {
+    flex-basis: 100%;
+    margin-right: 0;
+  }
+
+  .carousel-track {
+    transform: translateX(calc(var(--carousel-index, 0) * -100%));
   }
 
   .form-grid {
