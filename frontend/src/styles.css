@@ -241,15 +241,19 @@ a {
 
 .carousel-track {
   display: flex;
-  transform: translateX(calc(var(--carousel-index, 0) * -33.333%));
+  gap: 18px;
   transition: transform 0.45s ease;
+  will-change: transform;
+}
+
+.carousel-track.no-transition {
+  transition: none;
 }
 
 .carousel-item {
   position: relative;
   flex: 0 0 calc(33.333% - 12px);
   min-width: 0;
-  margin-right: 18px;
   overflow: hidden;
   border-radius: 16px;
   background: #263650;
@@ -747,11 +751,6 @@ a {
 
   .carousel-item {
     flex-basis: 100%;
-    margin-right: 0;
-  }
-
-  .carousel-track {
-    transform: translateX(calc(var(--carousel-index, 0) * -100%));
   }
 
   .form-grid {

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import api from '../api/axios';
 import ProductCard from '../components/ProductCard';
 import { products as dummyProducts } from '../data/mockData';
@@ -12,6 +12,12 @@ export default function HomePage() {
   const [maxPrice, setMaxPrice] = useState(50000);
   const [loading, setLoading] = useState(true);
   const [carouselIndex, setCarouselIndex] = useState(0);
+  const [carouselStep, setCarouselStep] = useState(0);
+  const [isCarouselAnimating, setIsCarouselAnimating] = useState(true);
+  const carouselIndexRef = useRef(0);
+  const carouselViewportRef = useRef(null);
+  const carouselTrackRef = useRef(null);
+  const carouselItemRef = useRef(null);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -44,24 +50,92 @@ export default function HomePage() {
 
   const featuredProducts = products.filter((product) => product.status === 'active').slice(0, 6);
   const carouselProducts = featuredProducts.length > 0 ? featuredProducts : products.slice(0, 6);
+  const loopingCarouselProducts =
+    carouselProducts.length > 1 ? [...carouselProducts, ...carouselProducts] : carouselProducts;
+
+  const measureCarouselStep = useCallback(() => {
+    if (!carouselItemRef.current || !carouselTrackRef.current) return;
+
+    const trackStyles = window.getComputedStyle(carouselTrackRef.current);
+    const gap = parseFloat(trackStyles.columnGap || trackStyles.gap || '0');
+    setCarouselStep(carouselItemRef.current.getBoundingClientRect().width + gap);
+  }, []);
+
+  useEffect(() => {
+    measureCarouselStep();
+
+    if (!carouselViewportRef.current) return undefined;
+
+    const observer = new ResizeObserver(measureCarouselStep);
+    observer.observe(carouselViewportRef.current);
+
+    return () => observer.disconnect();
+  }, [measureCarouselStep, carouselProducts.length]);
+
+  useEffect(() => {
+    carouselIndexRef.current = carouselIndex;
+  }, [carouselIndex]);
+
+  useEffect(() => {
+    setIsCarouselAnimating(false);
+    setCarouselIndex(0);
+
+    const frame = requestAnimationFrame(() => {
+      setIsCarouselAnimating(true);
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [carouselProducts.length]);
+
+  const moveCarousel = useCallback(
+    (direction) => {
+      if (carouselProducts.length < 2) return;
+
+      if (direction > 0) {
+        setIsCarouselAnimating(true);
+        setCarouselIndex((currentIndex) => currentIndex + 1);
+        return;
+      }
+
+      if (carouselIndexRef.current === 0) {
+        setIsCarouselAnimating(false);
+        setCarouselIndex(carouselProducts.length);
+
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            setIsCarouselAnimating(true);
+            setCarouselIndex(carouselProducts.length - 1);
+          });
+        });
+        return;
+      }
+
+      setIsCarouselAnimating(true);
+      setCarouselIndex((currentIndex) => currentIndex - 1);
+    },
+    [carouselProducts.length]
+  );
+
+  const handleCarouselTransitionEnd = () => {
+    if (carouselProducts.length < 2 || carouselIndex < carouselProducts.length) return;
+
+    setIsCarouselAnimating(false);
+    setCarouselIndex(0);
+
+    requestAnimationFrame(() => {
+      setIsCarouselAnimating(true);
+    });
+  };
 
   useEffect(() => {
     if (carouselProducts.length < 2) return undefined;
 
     const interval = setInterval(() => {
-      setCarouselIndex((currentIndex) => (currentIndex + 1) % carouselProducts.length);
+      moveCarousel(1);
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [carouselProducts.length]);
-
-  const moveCarousel = (direction) => {
-    if (!carouselProducts.length) return;
-
-    setCarouselIndex((currentIndex) =>
-      (currentIndex + direction + carouselProducts.length) % carouselProducts.length
-    );
-  };
+  }, [carouselProducts.length, moveCarousel]);
 
   return (
     <div>
@@ -108,16 +182,22 @@ export default function HomePage() {
         {loading ? (
           <div className="carousel-empty">Loading latest items...</div>
         ) : carouselProducts.length > 0 ? (
-          <div className="carousel-viewport">
+          <div className="carousel-viewport" ref={carouselViewportRef}>
             <div
-              className="carousel-track"
-              style={{ '--carousel-index': carouselIndex }}
+              className={`carousel-track${isCarouselAnimating ? '' : ' no-transition'}`}
+              ref={carouselTrackRef}
+              onTransitionEnd={handleCarouselTransitionEnd}
+              style={{ transform: `translate3d(-${carouselIndex * carouselStep}px, 0, 0)` }}
             >
-              {carouselProducts.map((product) => {
+              {loopingCarouselProducts.map((product, index) => {
                 const image = product.images?.[0] || product.image || 'https://placehold.co/900x600?text=LocalKart';
 
                 return (
-                  <article className="carousel-item" key={product._id || product.id}>
+                  <article
+                    className="carousel-item"
+                    key={`${product._id || product.id}-${index}`}
+                    ref={index === 0 ? carouselItemRef : null}
+                  >
                     <img src={image} alt={product.title} />
                     <div className="carousel-item-content">
                       <span>{product.category || 'Campus find'}</span>
