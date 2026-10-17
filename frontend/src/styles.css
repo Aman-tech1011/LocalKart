@@ -638,6 +638,21 @@ a {
   gap: 18px;
 }
 
+.price-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.price-input-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.price-input-row .btn {
+  flex-shrink: 0;
+}
+
 .sell-form {
   margin-top: 12px;
 }

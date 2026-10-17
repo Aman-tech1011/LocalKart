@@ -1,6 +1,9 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:6001/api';
+// LocalKart serves the frontend and API together on port 6001. Point local
+// browser tabs at that server even if they were opened from an old Vite port.
+const isLocalHost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+const API_URL = import.meta.env.VITE_API_URL || (isLocalHost ? 'http://localhost:6001/api' : '/api');
 
 const api = axios.create({
   baseURL: API_URL,

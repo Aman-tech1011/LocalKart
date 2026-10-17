@@ -2,7 +2,7 @@ const axios = require('axios');
 
 const getFairPriceSuggestion = async (req, res) => {
   try {
-    const { title, category, condition, price } = req.body;
+    const { title, category, condition, price } = req.body || {};
 
     if (!title || !category) {
       return res.status(400).json({ message: 'Title and category are required' });
@@ -27,15 +27,18 @@ const getFairPriceSuggestion = async (req, res) => {
       });
     }
 
+    const model = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
     const response = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
       {
         contents: [{
           parts: [{ text: prompt }],
         }],
+        generationConfig: { responseMimeType: 'application/json' },
       },
       {
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+        timeout: 20000,
       }
     );
 
@@ -48,7 +51,8 @@ const getFairPriceSuggestion = async (req, res) => {
       parsed = null;
     }
 
-    if (!parsed) {
+    const suggestedPrice = Number(parsed?.suggestedPrice);
+    if (!Number.isFinite(suggestedPrice) || suggestedPrice <= 0) {
       return res.status(200).json({
         suggestedPrice: Number(price) || 0,
         marketRange: `${Number(price) || 0} - ${Number(price) || 0}`,
@@ -56,10 +60,15 @@ const getFairPriceSuggestion = async (req, res) => {
       });
     }
 
-    res.status(200).json(parsed);
+    res.status(200).json({
+      suggestedPrice: Math.round(suggestedPrice),
+      marketRange: String(parsed.marketRange || ''),
+      reason: String(parsed.reason || 'AI resale price estimate.'),
+    });
   } catch (error) {
-    res.status(500).json({
-      message: error.message || 'AI price suggestion failed',
+    console.error('AI price suggestion failed:', error.response?.data?.error?.message || error.message);
+    res.status(502).json({
+      message: 'AI price suggestion is temporarily unavailable.',
       suggestedPrice: Number(req.body.price) || 0,
     });
   }

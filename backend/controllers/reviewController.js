@@ -9,19 +9,24 @@ const createReview = async (req, res) => {
       return res.status(400).json({ message: 'Reviewed user, product and rating are required' });
     }
 
-    const review = await Review.create({
-      reviewer: req.user._id,
-      reviewedUser,
-      product,
-      rating,
-      comment,
-    });
+    const ratingValue = Number(rating);
+    if (!Number.isFinite(ratingValue) || ratingValue < 1 || ratingValue > 5) {
+      return res.status(400).json({ message: 'Rating must be between 1 and 5' });
+    }
 
     const productExists = await Product.findById(product);
 
     if (!productExists) {
       return res.status(404).json({ message: 'Product not found' });
     }
+
+    const review = await Review.create({
+      reviewer: req.user._id,
+      reviewedUser,
+      product,
+      rating: ratingValue,
+      comment,
+    });
 
     const reviews = await Review.find({ reviewedUser });
     const averageScore = reviews.reduce((sum, item) => sum + item.rating, 0) / reviews.length;

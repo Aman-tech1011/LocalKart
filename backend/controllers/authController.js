@@ -10,12 +10,18 @@ const generateToken = (id) => {
 
 const registerUser = async (req, res) => {
   try {
-    const { name, email, password, college, phone } = req.body;
+    const { name, email, password, college, phone } = req.body || {};
+    const cleanName = typeof name === 'string' ? name.trim() : '';
+    const cleanEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
 
-    if (!name || !email || !password) {
+    if (!cleanName || !cleanEmail || typeof password !== 'string' || !password) {
       return res.status(400).json({
         message: 'Please provide name, email and password',
       });
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      return res.status(400).json({ message: 'Please provide a valid email address' });
     }
 
     if (password.length < 6) {
@@ -24,7 +30,7 @@ const registerUser = async (req, res) => {
       });
     }
 
-    const userExists = await User.findOne({ email });
+    const userExists = await User.findOne({ email: cleanEmail });
 
     if (userExists) {
       return res.status(400).json({ message: 'User already exists' });
@@ -34,8 +40,8 @@ const registerUser = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, salt);
 
     const user = await User.create({
-      name,
-      email,
+      name: cleanName,
+      email: cleanEmail,
       password: hashedPassword,
       college,
       phone,
@@ -55,19 +61,27 @@ const registerUser = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ message: error.message || 'Registration failed' });
+    if (error.code === 11000) {
+      return res.status(400).json({ message: 'User already exists' });
+    }
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ message: 'Please check the registration details' });
+    }
+    console.error('Registration failed:', error);
+    res.status(500).json({ message: 'Registration failed. Please try again.' });
   }
 };
 
 const loginUser = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password } = req.body || {};
+    const cleanEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
 
-    if (!email || !password) {
+    if (!cleanEmail || typeof password !== 'string' || !password) {
       return res.status(400).json({ message: 'Email and password are required' });
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: cleanEmail });
 
     if (!user) {
       return res.status(401).json({ message: 'Invalid email or password' });
@@ -92,7 +106,8 @@ const loginUser = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ message: error.message || 'Login failed' });
+    console.error('Login failed:', error);
+    res.status(500).json({ message: 'Login failed. Please try again.' });
   }
 };
 

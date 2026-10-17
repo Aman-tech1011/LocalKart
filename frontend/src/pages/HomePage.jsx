@@ -5,6 +5,36 @@ import { products as dummyProducts } from '../data/mockData';
 
 const categories = ['All', 'Books', 'Cycles', 'Gadgets', 'Electronics', 'Clothes', 'Study Materials', 'Others'];
 
+const normalizeListingValue = (value) => String(value ?? '').trim().toLowerCase();
+
+const getListingKey = (product) => {
+  const seller = product.seller;
+  const sellerId = typeof seller === 'object'
+    ? seller?._id || seller?.id || seller?.name
+    : seller;
+
+  return JSON.stringify([
+    normalizeListingValue(sellerId || product._id || product.id),
+    normalizeListingValue(product.title),
+    normalizeListingValue(product.category),
+    Number(product.price || 0),
+    normalizeListingValue(product.condition),
+    normalizeListingValue(product.description),
+    normalizeListingValue(product.location),
+  ]);
+};
+
+const removeDuplicateListings = (listings) => {
+  const uniqueListings = new Map();
+
+  listings.forEach((product) => {
+    const key = getListingKey(product);
+    if (!uniqueListings.has(key)) uniqueListings.set(key, product);
+  });
+
+  return [...uniqueListings.values()];
+};
+
 export default function HomePage() {
   const [products, setProducts] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -23,10 +53,10 @@ export default function HomePage() {
     const fetchProducts = async () => {
       try {
         const res = await api.get('/products');
-        setProducts(res.data?.length ? res.data : dummyProducts);
+        setProducts(removeDuplicateListings(res.data?.length ? res.data : dummyProducts));
       } catch (error) {
         console.error('Failed to load products:', error);
-        setProducts(dummyProducts);
+        setProducts(removeDuplicateListings(dummyProducts));
       } finally {
         setLoading(false);
       }

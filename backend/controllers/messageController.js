@@ -15,7 +15,7 @@ const sendMessage = async (req, res) => {
       content,
     });
 
-    res.status(201).json({ message: 'Message sent successfully', message });
+    res.status(201).json({ message: 'Message sent successfully', data: message });
   } catch (error) {
     res.status(500).json({ message: error.message || 'Message sending failed' });
   }

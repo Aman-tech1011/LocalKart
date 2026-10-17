@@ -34,7 +34,16 @@ export default function LoginPage() {
 
       window.location.href = '/';
     } catch (error) {
-      setMessage(error.response?.data?.message || 'Something went wrong');
+      const serverMessage = error.response?.data?.message;
+      const isLocalHost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+      setMessage(
+        serverMessage ||
+          (error.request
+            ? isLocalHost
+              ? 'Could not reach the server. Open LocalKart at http://localhost:6001 and try again.'
+              : 'Could not reach the server. Please check your connection and try again.'
+            : 'Unable to submit the form. Please try again.')
+      );
     }
   };
 
@@ -55,6 +64,7 @@ export default function LoginPage() {
                   value={formData.name}
                   onChange={handleChange}
                   placeholder="Your name"
+                  required
                 />
               </label>
 
@@ -79,6 +89,7 @@ export default function LoginPage() {
               value={formData.email}
               onChange={handleChange}
               placeholder="you@college.edu"
+              required
             />
           </label>
 
@@ -90,6 +101,8 @@ export default function LoginPage() {
               value={formData.password}
               onChange={handleChange}
               placeholder="••••••••"
+              minLength={isRegister ? 6 : undefined}
+              required
             />
           </label>
 

@@ -101,11 +101,16 @@ const updateProduct = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to update this product' });
     }
 
-    const updatedProduct = await Product.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true }
+    const editableFields = ['title', 'description', 'category', 'price', 'condition', 'location', 'status'];
+    const updates = Object.fromEntries(
+      editableFields
+        .filter((field) => req.body[field] !== undefined)
+        .map((field) => [field, req.body[field]])
     );
+    const updatedProduct = await Product.findByIdAndUpdate(req.params.id, updates, {
+      new: true,
+      runValidators: true,
+    });
 
     res.status(200).json({ message: 'Product updated successfully', product: updatedProduct });
   } catch (error) {
