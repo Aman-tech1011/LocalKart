@@ -15,7 +15,10 @@ const productSchema = new mongoose.Schema(
     category: {
       type: String,
       required: true,
-      enum: ['Books', 'Cycles', 'Gadgets', 'Electronics', 'Clothes', 'Study Materials', 'Others'],
+      enum: [
+        'Mobiles', 'Laptops', 'Audio', 'Accessories', 'Books', 'Cycles',
+        'Furniture', 'Study Materials', 'Gadgets', 'Electronics', 'Clothes', 'Others',
+      ],
     },
     price: {
       type: Number,
@@ -36,10 +39,33 @@ const productSchema = new mongoose.Schema(
       enum: ['active', 'sold'],
       default: 'active',
     },
+    isDemo: {
+      type: Boolean,
+      default: false,
+    },
     seller: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
+    },
+    purchaseRequestedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
+    purchaseRequestedAt: {
+      type: Date,
+      default: null,
+    },
+    purchasedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
+    college: {
+      type: String,
+      required: true,
+      trim: true,
     },
     location: {
       type: String,

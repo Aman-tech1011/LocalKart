@@ -1,9 +1,11 @@
 import React, { useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 
 export default function SellPage() {
   const { user } = useAuth();
+  const imageInputRef = useRef(null);
   const [formData, setFormData] = useState({
     title: '',
     category: 'Books',
@@ -73,11 +75,11 @@ export default function SellPage() {
     setIsSubmitting(true);
 
     try {
-      const response = await api.post('/products', form, {
+      await api.post('/products', form, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
-      setMessage(response.data.message || 'Product listed successfully!');
+      setMessage('Your item is live in the campus marketplace. The form is ready for another listing.');
       setFormData({
         title: '',
         category: 'Books',
@@ -87,6 +89,7 @@ export default function SellPage() {
         location: '',
       });
       setSelectedFiles([]);
+      if (imageInputRef.current) imageInputRef.current.value = '';
     } catch (error) {
       setMessage(error.response?.data?.message || 'Failed to create listing');
     } finally {
@@ -99,9 +102,9 @@ export default function SellPage() {
     <div className="auth-page">
       <div className="auth-card wide-card">
         <h2>Sell your item</h2>
-        <p>List your item for the campus community.</p>
+        <p>List your item for students at {user?.college || 'your campus'}. Meet nearby and agree on the handover together.</p>
 
-        <form className="auth-form sell-form" onSubmit={handleSubmit}>
+        <form className="auth-form sell-form" onSubmit={handleSubmit} autoComplete="off">
           <div className="form-grid">
             <label>
               Item Name
@@ -111,18 +114,25 @@ export default function SellPage() {
                 value={formData.title}
                 onChange={handleChange}
                 placeholder="e.g. Mechanical Engineering Book"
+                maxLength="100"
+                required
               />
             </label>
 
             <label>
               Category
               <select name="category" value={formData.category} onChange={handleChange}>
+                <option>Mobiles</option>
+                <option>Laptops</option>
+                <option>Audio</option>
+                <option>Accessories</option>
                 <option>Books</option>
                 <option>Cycles</option>
+                <option>Furniture</option>
+                <option>Study Materials</option>
                 <option>Gadgets</option>
                 <option>Electronics</option>
                 <option>Clothes</option>
-                <option>Study Materials</option>
                 <option>Others</option>
               </select>
             </label>
@@ -136,6 +146,9 @@ export default function SellPage() {
                   value={formData.price}
                   onChange={handleChange}
                   placeholder="1500"
+                  min="0"
+                  step="1"
+                  required
                 />
                 <button
                   type="button"
@@ -167,6 +180,8 @@ export default function SellPage() {
               value={formData.description}
               onChange={handleChange}
               placeholder="Describe the item, usage, and why it is valuable."
+              maxLength="2000"
+              required
             />
           </label>
 
@@ -184,18 +199,21 @@ export default function SellPage() {
           <label>
             Upload Image
             <input
+              ref={imageInputRef}
               type="file"
               multiple
-              accept="image/*"
-              onChange={(e) => setSelectedFiles(Array.from(e.target.files))}
+              accept="image/jpeg,image/png,image/webp"
+              onChange={(e) => setSelectedFiles(Array.from(e.target.files || []).slice(0, 5))}
             />
+            <span className="field-hint">Up to 5 JPG, PNG or WEBP photos. Each file can be up to 5 MB.</span>
           </label>
 
-          {message && <p className="form-message">{message}</p>}
+          {message && <p className={`form-message${message.startsWith('Your item is live') ? ' success-message' : ''}`} role="status">{message}</p>}
 
           <button type="submit" className="btn btn-primary wide-btn" disabled={isSubmitting}>
             {isSubmitting ? 'Publishing…' : 'Publish Listing'}
           </button>
+          <Link className="auth-back-link" to="/dashboard">Back to your dashboard</Link>
         </form>
       </div>
     </div>

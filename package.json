@@ -4,6 +4,7 @@
   "scripts": {
     "dev": "npm --prefix backend run dev",
     "dev:backend": "npm --prefix backend run dev",
+    "seed:demo": "npm --prefix backend run seed:demo",
     "build": "npm --prefix frontend run build"
   }
 }

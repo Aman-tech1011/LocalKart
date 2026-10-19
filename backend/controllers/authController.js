@@ -14,10 +14,15 @@ const registerUser = async (req, res) => {
     const cleanName = typeof name === 'string' ? name.trim() : '';
     const cleanEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
 
-    if (!cleanName || !cleanEmail || typeof password !== 'string' || !password) {
+    const cleanCollege = typeof college === 'string' ? college.trim() : '';
+    if (!cleanName || !cleanEmail || !cleanCollege || typeof password !== 'string' || !password) {
       return res.status(400).json({
-        message: 'Please provide name, email and password',
+        message: 'Please provide your name, university, email and password',
       });
+    }
+
+    if (process.env.CAMPUS_NAME && cleanCollege.toLowerCase() !== process.env.CAMPUS_NAME.trim().toLowerCase()) {
+      return res.status(403).json({ message: `LocalKart is currently only available to ${process.env.CAMPUS_NAME.trim()} students` });
     }
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
@@ -43,7 +48,7 @@ const registerUser = async (req, res) => {
       name: cleanName,
       email: cleanEmail,
       password: hashedPassword,
-      college,
+      college: cleanCollege,
       phone,
       role: 'student',
     });
