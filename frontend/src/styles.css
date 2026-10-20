@@ -674,6 +674,17 @@ a {
   font-weight: 700;
 }
 
+.forgot-password-link {
+  margin-top: -10px;
+  text-align: right;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.forgot-password-link a {
+  color: var(--primary-dark);
+}
+
 .link-button {
   border: none;
   background: transparent;
