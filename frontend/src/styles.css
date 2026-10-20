@@ -8,6 +8,20 @@
   --muted: #5c6b7d;
   --border: #e6ebf3;
   --shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+  --carousel-bg: #e8eef8;
+  --carousel-card: #ffffff;
+  --carousel-text: #122033;
+  --carousel-muted: #5c6b7d;
+  --carousel-accent: #2d6df6;
+  --carousel-control-border: #cbd5e1;
+  --carousel-control-bg: #ffffff;
+  --carousel-control-text: #1d4fd0;
+  --carousel-empty-border: #cbd5e1;
+  --footer-bg: #e9eef7;
+  --footer-text: #122033;
+  --footer-muted: #5c6b7d;
+  --footer-link: #1d4fd0;
+  --footer-divider: #d4dcea;
 }
 
 :root[data-theme="dark"] {
@@ -20,6 +34,20 @@
   --muted: #a9b6c9;
   --border: #2d3c52;
   --shadow: 0 14px 30px rgba(0, 0, 0, 0.24);
+  --carousel-bg: #17243b;
+  --carousel-card: #263650;
+  --carousel-text: #ffffff;
+  --carousel-muted: #c4d0e5;
+  --carousel-accent: #a9c5ff;
+  --carousel-control-border: rgba(255, 255, 255, 0.22);
+  --carousel-control-bg: rgba(255, 255, 255, 0.1);
+  --carousel-control-text: #ffffff;
+  --carousel-empty-border: rgba(255, 255, 255, 0.3);
+  --footer-bg: #17243b;
+  --footer-text: #ffffff;
+  --footer-muted: #b6c4da;
+  --footer-link: #dce6f7;
+  --footer-divider: rgba(255, 255, 255, 0.14);
 }
 
 * {
@@ -65,8 +93,8 @@ a {
 .site-footer {
   margin-top: 24px;
   padding: 34px max(28px, calc((100% - 1160px) / 2)) 20px;
-  background: #17243b;
-  color: white;
+  background: var(--footer-bg);
+  color: var(--footer-text);
 }
 
 .footer-content,
@@ -84,7 +112,7 @@ a {
 .footer-brand p {
   max-width: 320px;
   margin: 0;
-  color: #b6c4da;
+  color: var(--footer-muted);
   line-height: 1.6;
 }
 
@@ -95,19 +123,19 @@ a {
 }
 
 .footer-links a {
-  color: #dce6f7;
+  color: var(--footer-link);
   font-weight: 700;
 }
 
 .footer-links a:hover {
-  color: #93b7ff;
+  color: var(--primary-dark);
 }
 
 .footer-bottom {
   margin-top: 28px;
   padding-top: 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.14);
-  color: #91a2bc;
+  border-top: 1px solid var(--footer-divider);
+  color: var(--footer-muted);
   font-size: 0.85rem;
 }
 
@@ -203,9 +231,9 @@ a {
 .item-carousel {
   margin: 18px 0 8px;
   padding: 24px 26px 26px;
-  background: #17243b;
+  background: var(--carousel-bg);
   border-radius: 24px;
-  color: white;
+  color: var(--carousel-text);
   overflow: hidden;
 }
 
@@ -219,7 +247,7 @@ a {
 
 .carousel-heading .eyebrow {
   margin-bottom: 6px;
-  color: #93b7ff;
+  color: var(--carousel-accent);
 }
 
 .carousel-heading h2 {
@@ -235,10 +263,10 @@ a {
 .carousel-button {
   width: 40px;
   height: 40px;
-  border: 1px solid rgba(255, 255, 255, 0.22);
+  border: 1px solid var(--carousel-control-border);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
+  background: var(--carousel-control-bg);
+  color: var(--carousel-control-text);
   font-size: 1.25rem;
 }
 
@@ -272,7 +300,8 @@ a {
   min-width: 0;
   overflow: hidden;
   border-radius: 16px;
-  background: #263650;
+  background: var(--carousel-card);
+  color: var(--carousel-text);
 }
 
 .carousel-item img {
@@ -287,7 +316,7 @@ a {
 }
 
 .carousel-item-content span {
-  color: #a9c5ff;
+  color: var(--carousel-accent);
   font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -302,14 +331,14 @@ a {
 }
 
 .carousel-item-content strong {
-  color: #ffffff;
+  color: var(--carousel-text);
 }
 
 .carousel-empty {
   padding: 42px 12px;
-  border: 1px dashed rgba(255, 255, 255, 0.3);
+  border: 1px dashed var(--carousel-empty-border);
   border-radius: 16px;
-  color: #c4d0e5;
+  color: var(--carousel-muted);
   text-align: center;
 }
 
