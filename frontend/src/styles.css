@@ -1,39 +1,87 @@
 :root {
-  --bg: #f4f7fb;
+  color-scheme: light;
+  --bg: #f5f7fb;
   --surface: #ffffff;
-  --primary: #2d6df6;
-  --primary-dark: #1d4fd0;
-  --accent: #17b26a;
-  --text: #122033;
-  --muted: #5c6b7d;
-  --border: #e6ebf3;
-  --shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
-  --carousel-bg: #e8eef8;
+  --surface-subtle: #f1f4fa;
+  --surface-tint: #edf3ff;
+  --surface-tint-strong: #e3ecff;
+  --input-bg: #f8fafc;
+  --primary: #3563d9;
+  --primary-dark: #244bb5;
+  --primary-highlight: #82a4ff;
+  --accent: #0f9f78;
+  --text: #18263d;
+  --muted: #64748b;
+  --border: #e2e8f1;
+  --border-strong: #cbd5e1;
+  --focus-ring: rgba(53, 99, 217, 0.16);
+  --button-primary-start: #3563d9;
+  --button-primary-end: #244bb5;
+  --nav-bg: rgba(255, 255, 255, 0.96);
+  --hero-bg: radial-gradient(circle at 84% 8%, rgba(183, 202, 255, 0.55), transparent 31%),
+    linear-gradient(115deg, #f1f5ff 0%, #fbfcff 53%, #edf2ff 100%);
+  --hero-title: #18263d;
+  --hero-copy: #5e6d83;
+  --success-bg: #e9f7f1;
+  --success-text: #14734f;
+  --success-border: #bfe9d7;
+  --danger-bg: #fff1f0;
+  --danger-text: #a33335;
+  --danger-border: #f2c8c6;
+  --warning-bg: #fff7e8;
+  --warning-text: #865a13;
+  --warning-border: #f0d8ad;
+  --shadow: 0 12px 30px rgba(25, 43, 75, 0.08);
+  --carousel-bg: #e9eef8;
   --carousel-card: #ffffff;
-  --carousel-text: #122033;
-  --carousel-muted: #5c6b7d;
-  --carousel-accent: #2d6df6;
+  --carousel-text: #18263d;
+  --carousel-muted: #64748b;
+  --carousel-accent: #315fce;
   --carousel-control-border: #cbd5e1;
   --carousel-control-bg: #ffffff;
-  --carousel-control-text: #1d4fd0;
+  --carousel-control-text: #244bb5;
   --carousel-empty-border: #cbd5e1;
   --footer-bg: #e9eef7;
-  --footer-text: #122033;
-  --footer-muted: #5c6b7d;
-  --footer-link: #1d4fd0;
+  --footer-text: #18263d;
+  --footer-muted: #64748b;
+  --footer-link: #244bb5;
   --footer-divider: #d4dcea;
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #101827;
-  --surface: #182436;
-  --primary: #7da7ff;
-  --primary-dark: #a6c2ff;
-  --text: #e7edf7;
-  --muted: #a9b6c9;
-  --border: #2d3c52;
-  --shadow: 0 14px 30px rgba(0, 0, 0, 0.24);
+  --bg: #0d1523;
+  --surface: #151f30;
+  --surface-subtle: #101a29;
+  --surface-tint: #1d2b42;
+  --surface-tint-strong: #263954;
+  --input-bg: #101a29;
+  --primary: #91b0ff;
+  --primary-dark: #b5caff;
+  --primary-highlight: #7398f4;
+  --accent: #4bc7a0;
+  --text: #edf2fb;
+  --muted: #a4b1c5;
+  --border: #29384e;
+  --border-strong: #40516a;
+  --focus-ring: rgba(125, 161, 255, 0.24);
+  --button-primary-start: #426fdb;
+  --button-primary-end: #3158ba;
+  --nav-bg: rgba(13, 21, 35, 0.96);
+  --hero-bg: radial-gradient(circle at 84% 8%, rgba(69, 102, 169, 0.26), transparent 31%),
+    linear-gradient(115deg, #17263c 0%, #141f31 53%, #1b2b43 100%);
+  --hero-title: #edf2fb;
+  --hero-copy: #b2bfd2;
+  --success-bg: #143429;
+  --success-text: #8cdbb9;
+  --success-border: #285b48;
+  --danger-bg: #3a2229;
+  --danger-text: #ffaaaa;
+  --danger-border: #68404a;
+  --warning-bg: #3a3020;
+  --warning-text: #f0ca82;
+  --warning-border: #67512c;
+  --shadow: 0 16px 36px rgba(0, 0, 0, 0.22);
   --carousel-bg: #17243b;
   --carousel-card: #263650;
   --carousel-text: #ffffff;
@@ -60,7 +108,7 @@ html {
 
 body {
   margin: 0;
-  background: var(--bg);
+  background: linear-gradient(180deg, var(--surface-subtle), var(--bg) 45%);
   color: var(--text);
   font-family: Inter, Arial, sans-serif;
 }
@@ -153,7 +201,7 @@ a {
   align-items: center;
   justify-content: space-between;
   padding: 18px 28px;
-  background: rgba(255, 255, 255, 0.9);
+  background: var(--nav-bg);
   backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--border);
 }
@@ -170,7 +218,7 @@ a {
   border-radius: 12px;
   display: grid;
   place-items: center;
-  background: linear-gradient(135deg, var(--primary), #7ea6ff);
+  background: linear-gradient(135deg, var(--primary), var(--primary-highlight));
   color: white;
   font-weight: 800;
 }
@@ -205,17 +253,17 @@ a {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  background: linear-gradient(135deg, var(--button-primary-start), var(--button-primary-end));
   color: white;
 }
 
 .btn-light {
-  background: #eef4ff;
+  background: var(--surface-tint);
   color: var(--primary);
 }
 
 .navbar .nav-actions .btn-primary {
-  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.2);
+  box-shadow: 0 6px 16px var(--focus-ring);
 }
 
 .top-search-section {
@@ -392,7 +440,7 @@ a {
   margin-top: 24px;
   display: flex;
   gap: 12px;
-  background: #f5f8ff;
+  background: var(--surface-subtle);
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 10px;
@@ -421,7 +469,7 @@ a {
   gap: 6px;
   padding: 18px;
   border-radius: 18px;
-  background: linear-gradient(135deg, #eff5ff, #f9fbff);
+  background: linear-gradient(135deg, var(--surface-tint), var(--surface));
   border: 1px solid var(--border);
 }
 
@@ -492,7 +540,7 @@ a {
 .product-category,
 .product-condition {
   display: inline-block;
-  background: #edf4ff;
+  background: var(--surface-tint);
   color: var(--primary);
   border-radius: 999px;
   padding: 6px 10px;
@@ -547,7 +595,7 @@ a {
 
 .purchase-request-note {
   margin: 6px 0;
-  color: #875500;
+  color: var(--warning-text);
   font-size: 0.85rem;
   font-weight: 600;
 }
@@ -576,9 +624,9 @@ a {
 }
 
 .pill.active {
-  background: #eaf2ff;
+  background: var(--surface-tint-strong);
   color: var(--primary);
-  border-color: #d4e3ff;
+  border-color: var(--border-strong);
 }
 
 .price-filter {
@@ -644,7 +692,7 @@ a {
 .auth-form select,
 .auth-form textarea {
   border: 1px solid var(--border);
-  background: #f8fafc;
+  background: var(--input-bg);
   border-radius: 12px;
   padding: 12px 14px;
   outline: none;
@@ -654,7 +702,7 @@ a {
 .auth-form select:focus,
 .auth-form textarea:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(45, 109, 246, 0.12);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 .wide-btn {
@@ -696,16 +744,15 @@ a {
   margin-top: 12px;
   padding: 10px 12px;
   border-radius: 10px;
-  color: #9f2424;
-  background: #fff0f0;
-  border: 1px solid #f2caca;
+  color: var(--danger-text);
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
 }
 
 .form-message.success-message {
-  color: #17643a;
-  background: #eaf7ee;
-  border-color: #cfeccf;
-  color: #186a39;
+  color: var(--success-text);
+  background: var(--success-bg);
+  border-color: var(--success-border);
   font-weight: 600;
 }
 
@@ -877,10 +924,10 @@ a {
   width: min(100%, 460px);
   min-width: 180px;
   padding: 5px 6px 5px 14px;
-  border: 1px solid #e4e8f0;
+  border: 1px solid var(--border);
   border-radius: 12px;
-  background: #f7f8fb;
-  color: #8590a2;
+  background: var(--surface-subtle);
+  color: var(--muted);
 }
 
 .nav-search > span,
@@ -904,7 +951,7 @@ a {
   padding: 9px 13px;
   border: 0;
   border-radius: 9px;
-  background: #edf2ff;
+  background: var(--surface-tint);
   color: var(--primary-dark);
   font-size: 0.84rem;
   font-weight: 800;
@@ -921,8 +968,8 @@ a {
 }
 
 .btn-outline {
-  border: 1px solid #cfd8e8;
-  background: #fff;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
   color: var(--text);
 }
 
@@ -935,11 +982,9 @@ a {
   margin: 8px 0 38px;
   padding: 54px 58px;
   overflow: hidden;
-  border: 1px solid #e4eaf6;
+  border: 1px solid var(--border);
   border-radius: 28px;
-  background:
-    radial-gradient(circle at 84% 8%, rgba(200, 216, 255, 0.7), transparent 31%),
-    linear-gradient(115deg, #f1f5ff 0%, #f8faff 53%, #edf3ff 100%);
+  background: var(--hero-bg);
 }
 
 .landing-hero-copy {
@@ -954,30 +999,30 @@ a {
   gap: 8px;
   margin-bottom: 20px;
   padding: 8px 12px;
-  border: 1px solid #d9e4ff;
+  border: 1px solid var(--border-strong);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.78);
-  color: #4266b4;
+  color: var(--primary-dark);
   font-size: 0.78rem;
   font-weight: 800;
 }
 
 .landing-hero h1 {
   margin: 0;
-  color: #17243b;
+  color: var(--hero-title);
   font-size: clamp(2.8rem, 5.2vw, 4.5rem);
   letter-spacing: -0.055em;
   line-height: 1.03;
 }
 
 .landing-hero h1 span {
-  color: #3a68d4;
+  color: var(--primary);
 }
 
 .landing-hero-copy > p {
   max-width: 510px;
   margin: 18px 0 0;
-  color: #5d6b80;
+  color: var(--hero-copy);
   font-size: 1.03rem;
   line-height: 1.7;
 }
@@ -989,11 +1034,11 @@ a {
   max-width: 530px;
   margin-top: 24px;
   padding: 7px 8px 7px 16px;
-  border: 1px solid #e0e6f0;
+  border: 1px solid var(--border);
   border-radius: 14px;
-  background: white;
+  background: var(--surface);
   box-shadow: 0 12px 28px rgba(39, 69, 128, 0.08);
-  color: #8590a2;
+  color: var(--muted);
 }
 
 .hero-search input {
@@ -1017,7 +1062,7 @@ a {
   align-items: center;
   gap: 9px;
   margin-top: 23px;
-  color: #718097;
+  color: var(--muted);
   font-size: 0.8rem;
   font-weight: 700;
 }
@@ -1028,12 +1073,12 @@ a {
   height: 18px;
   place-items: center;
   border-radius: 50%;
-  background: #e4f6ed;
-  color: #12854c;
+  background: var(--success-bg);
+  color: var(--success-text);
 }
 
 .trust-dot {
-  color: #b2bdce;
+  color: var(--border-strong);
 }
 
 .landing-hero-art {
@@ -1173,10 +1218,10 @@ a {
   gap: 10px;
   min-height: 118px;
   padding: 14px 8px;
-  border: 1px solid #e8ecf3;
+  border: 1px solid var(--border);
   border-radius: 17px;
-  background: white;
-  color: #344258;
+  background: var(--surface);
+  color: var(--text);
   font-size: 0.83rem;
   font-weight: 800;
   transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
@@ -1185,12 +1230,12 @@ a {
 .category-tile:hover,
 .category-tile.active {
   transform: translateY(-3px);
-  border-color: #b9cbf6;
+  border-color: var(--primary);
   box-shadow: 0 10px 24px rgba(37, 72, 139, 0.1);
 }
 
 .category-tile.active {
-  background: #f3f6ff;
+  background: var(--surface-tint);
   color: var(--primary-dark);
 }
 
@@ -1200,7 +1245,7 @@ a {
   height: 52px;
   place-items: center;
   border-radius: 16px;
-  background: #f0f4ff;
+  background: var(--surface-tint);
   font-size: 1.65rem;
 }
 
@@ -1277,9 +1322,9 @@ a {
   gap: 24px;
   margin-top: 48px;
   padding: 28px 34px;
-  border: 1px solid #e1e8f5;
+  border: 1px solid var(--border);
   border-radius: 22px;
-  background: linear-gradient(110deg, #f0f5ff, #fafbff);
+  background: linear-gradient(110deg, var(--surface-tint), var(--surface));
 }
 
 .seller-banner h2 {
@@ -2146,14 +2191,14 @@ a {
 }
 
 :root[data-theme="dark"] .navbar {
-  background: rgba(16, 24, 39, 0.96);
+  background: var(--nav-bg);
 }
 
 :root[data-theme="dark"] .nav-search,
 :root[data-theme="dark"] .search-box,
 :root[data-theme="dark"] .chat-compose {
   border-color: var(--border);
-  background: #131f30;
+  background: var(--surface-subtle);
 }
 
 :root[data-theme="dark"] .nav-search button,
@@ -2161,9 +2206,10 @@ a {
 :root[data-theme="dark"] .product-category,
 :root[data-theme="dark"] .product-condition,
 :root[data-theme="dark"] .category-icon,
-:root[data-theme="dark"] .seller-listing-placeholder {
-  background: #22324a;
-  color: #b9ceff;
+:root[data-theme="dark"] .seller-listing-placeholder,
+:root[data-theme="dark"] .conversation-avatar {
+  background: var(--surface-tint);
+  color: var(--primary-dark);
 }
 
 :root[data-theme="dark"] .hero-copy,
@@ -2191,9 +2237,7 @@ a {
 
 :root[data-theme="dark"] .landing-hero {
   border-color: var(--border);
-  background:
-    radial-gradient(circle at 84% 8%, rgba(65, 93, 150, 0.28), transparent 31%),
-    linear-gradient(115deg, #18263b 0%, #172335 53%, #1c2b43 100%);
+  background: var(--hero-bg);
 }
 
 :root[data-theme="dark"] .landing-hero h1,
@@ -2219,7 +2263,7 @@ a {
 :root[data-theme="dark"] .auth-form select,
 :root[data-theme="dark"] .auth-form textarea {
   border-color: var(--border);
-  background: #131f30;
+  background: var(--input-bg);
   color: var(--text);
 }
 
@@ -2230,8 +2274,8 @@ a {
 :root[data-theme="dark"] .conversation-row:hover,
 :root[data-theme="dark"] .chat-message.mine {
   border-color: var(--border);
-  background: #22324a;
-  color: #c6d7fa;
+  background: var(--surface-tint);
+  color: var(--text);
 }
 
 :root[data-theme="dark"] .product-detail-price,
@@ -2240,18 +2284,79 @@ a {
 :root[data-theme="dark"] .auth-back-link,
 :root[data-theme="dark"] .back-link,
 :root[data-theme="dark"] .product-seller-link {
-  color: #a6c2ff;
+  color: var(--primary-dark);
 }
 
 :root[data-theme="dark"] .profile-trigger:hover,
 :root[data-theme="dark"] .profile-trigger[aria-expanded="true"],
 :root[data-theme="dark"] .profile-dropdown > a:hover {
-  background: #22324a;
+  background: var(--surface-tint);
 }
 
 :root[data-theme="dark"] .profile-dropdown::before {
   border-color: var(--border);
   background: var(--surface);
+}
+
+:root[data-theme="dark"] .search-box input,
+:root[data-theme="dark"] .price-filter input,
+:root[data-theme="dark"] .product-detail-image-wrap {
+  color: var(--text);
+  color-scheme: dark;
+}
+
+:root[data-theme="dark"] .hero-item {
+  border-color: var(--border-strong);
+  background: var(--surface);
+}
+
+:root[data-theme="dark"] .product-detail-image-wrap {
+  background: var(--surface-subtle);
+}
+
+:root[data-theme="dark"] .product-image-placeholder {
+  background: radial-gradient(circle, var(--surface), var(--surface-tint));
+}
+
+:root[data-theme="dark"] .purchase-request-note,
+:root[data-theme="dark"] .sold-notice {
+  border-color: var(--warning-border);
+  background: var(--warning-bg);
+  color: var(--warning-text);
+}
+
+:root[data-theme="dark"] .form-message,
+:root[data-theme="dark"] .error-message,
+:root[data-theme="dark"] .btn-danger-light {
+  border-color: var(--danger-border);
+  background: var(--danger-bg);
+  color: var(--danger-text);
+}
+
+:root[data-theme="dark"] .form-message.success-message,
+:root[data-theme="dark"] .status-chip:not(.sold) {
+  border-color: var(--success-border);
+  background: var(--success-bg);
+  color: var(--success-text);
+}
+
+:root[data-theme="dark"] .status-chip.sold {
+  background: var(--surface-tint);
+  color: var(--muted);
+}
+
+:root[data-theme="dark"] .profile-dropdown > button {
+  border-color: var(--border);
+  color: var(--danger-text);
+}
+
+:root[data-theme="dark"] .profile-dropdown > button:hover,
+:root[data-theme="dark"] .seller-listing-actions .btn-danger-light:hover {
+  background: var(--danger-bg);
+}
+
+:root[data-theme="dark"] .product-detail-price {
+  color: var(--text);
 }
 
 @media (max-width: 768px) {
