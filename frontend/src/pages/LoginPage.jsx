@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 
 export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const [isRegister, setIsRegister] = useState(false);
   const [isOtpSent, setIsOtpSent] = useState(false);
@@ -18,6 +19,10 @@ export default function LoginPage() {
   });
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (location.state?.message) setMessage(location.state.message);
+  }, [location.state]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -162,6 +167,12 @@ export default function LoginPage() {
                 </small>
               )}
             </label>
+          )}
+
+          {!isRegister && (
+            <div className="forgot-password-link">
+              <Link to="/forgot-password">Forgot password?</Link>
+            </div>
           )}
 
           {isRegister && isOtpSent && (
