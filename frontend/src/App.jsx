@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import HomePage from './pages/HomePage';
@@ -24,11 +24,20 @@ function RequireAuth({ children }) {
 }
 
 function App() {
+  const [theme, setTheme] = useState(() => (
+    localStorage.getItem('localkart-theme') === 'dark' ? 'dark' : 'light'
+  ));
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem('localkart-theme', theme);
+  }, [theme]);
+
   return (
     <AuthProvider>
       <BrowserRouter>
         <div className="app-shell">
-          <Navbar />
+          <Navbar theme={theme} onThemeChange={setTheme} />
           <main className="page-container">
             <Routes>
               <Route path="/" element={<HomePage />} />
