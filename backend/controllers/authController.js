@@ -230,7 +230,7 @@ const loginUser = async (req, res) => {
     const { email, password } = req.body || {};
     const cleanEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
 
-    if (!cleanEmail || typeof password !== 'string' || !password) {
+    if (!EMAIL_PATTERN.test(cleanEmail) || cleanEmail.length > 254 || typeof password !== 'string' || !password) {
       return res.status(400).json({ message: 'Email and password are required' });
     }
 
