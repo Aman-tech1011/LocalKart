@@ -4,6 +4,7 @@ import Navbar from './components/Navbar';
 import HomePage from './pages/HomePage';
 import BuyPage from './pages/BuyPage';
 import LoginPage from './pages/LoginPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import SellPage from './pages/SellPage';
 import DashboardPage from './pages/DashboardPage';
 import ProductPage from './pages/ProductPage';
@@ -43,6 +44,7 @@ function App() {
               <Route path="/" element={<HomePage />} />
               <Route path="/buy" element={<BuyPage />} />
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/sell" element={<RequireAuth><SellPage /></RequireAuth>} />
               <Route path="/dashboard" element={<RequireAuth><DashboardPage /></RequireAuth>} />
               <Route path="/product/:productId" element={<ProductPage />} />
