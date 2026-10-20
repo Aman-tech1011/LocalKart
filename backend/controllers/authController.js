@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const User = require('../models/User');
 const EmailVerification = require('../models/EmailVerification');
+const PasswordReset = require('../models/PasswordReset');
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_PATTERN = /^(?=.*[A-Z])(?=.*\d)(?=.*[@,./]).{10,}$/;
@@ -13,6 +14,7 @@ const RESEND_COOLDOWN_MS = 60 * 1000;
 const SEND_LIMIT_WINDOW_MS = 60 * 60 * 1000;
 const MAX_SENDS_PER_WINDOW = 5;
 const MAX_OTP_ATTEMPTS = 5;
+const RESET_TOKEN_TTL_MS = 10 * 60 * 1000;
 
 const getEmailConfigurationError = () => {
   const requiredSettings = ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASSWORD', 'JWT_SECRET'];
@@ -33,12 +35,12 @@ const createOtpHash = (email, code) => crypto
   .update(`${email}:${code}`)
   .digest();
 
-const sendVerificationEmail = async (email, code) => {
+const createEmailTransporter = () => {
   const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD } = process.env;
   const configurationError = getEmailConfigurationError();
   if (configurationError) throw new Error(configurationError);
 
-  const transporter = nodemailer.createTransport({
+  return nodemailer.createTransport({
     host: SMTP_HOST,
     port: Number(SMTP_PORT),
     secure: process.env.SMTP_SECURE === 'true',
@@ -47,13 +49,198 @@ const sendVerificationEmail = async (email, code) => {
       pass: SMTP_PASSWORD,
     },
   });
+};
 
+const sendVerificationEmail = async (email, code) => {
+  const transporter = createEmailTransporter();
   await transporter.sendMail({
-    from: process.env.EMAIL_FROM || SMTP_USER,
+    from: process.env.EMAIL_FROM || process.env.SMTP_USER,
     to: email,
     subject: 'Your LocalKart verification code',
     text: `Your LocalKart verification code is ${code}. It expires in 10 minutes. If you did not request this code, you can ignore this email.`,
   });
+};
+
+const sendPasswordResetEmail = async (email, code) => {
+  const transporter = createEmailTransporter();
+  await transporter.sendMail({
+    from: process.env.EMAIL_FROM || process.env.SMTP_USER,
+    to: email,
+    subject: 'Reset your LocalKart password',
+    text: `Your LocalKart password reset code is ${code}. It expires in 10 minutes. If you did not request a password reset, you can ignore this email.`,
+  });
+};
+
+const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body || {};
+    const cleanEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+    if (!EMAIL_PATTERN.test(cleanEmail) || cleanEmail.length > 254) {
+      return res.status(400).json({ message: 'Please provide a valid email address.' });
+    }
+
+    const emailConfigurationError = getEmailConfigurationError();
+    if (emailConfigurationError) {
+      return res.status(503).json({ message: emailConfigurationError });
+    }
+
+    const now = new Date();
+    let reset = await PasswordReset.findOne({ email: cleanEmail });
+    const isWithinSendWindow = reset
+      && now.getTime() - reset.sendWindowStartedAt.getTime() < SEND_LIMIT_WINDOW_MS;
+
+    if (reset && now.getTime() - reset.lastSentAt.getTime() < RESEND_COOLDOWN_MS) {
+      return res.status(429).json({ message: 'Please wait a minute before requesting another code.' });
+    }
+    if (isWithinSendWindow && reset.sendCount >= MAX_SENDS_PER_WINDOW) {
+      return res.status(429).json({ message: 'Too many verification codes requested. Please try again in an hour.' });
+    }
+
+    const user = await User.findOne({ email: cleanEmail });
+    const code = crypto.randomInt(0, 1000000).toString().padStart(6, '0');
+    if (!reset) reset = new PasswordReset({ email: cleanEmail });
+
+    reset.codeHash = createOtpHash(cleanEmail, code);
+    reset.expiresAt = new Date(now.getTime() + OTP_TTL_MS);
+    reset.attempts = 0;
+    reset.lastSentAt = now;
+    reset.sendWindowStartedAt = isWithinSendWindow ? reset.sendWindowStartedAt : now;
+    reset.sendCount = isWithinSendWindow ? reset.sendCount + 1 : 1;
+    reset.resetTokenHash = undefined;
+    reset.resetTokenExpiresAt = undefined;
+    await reset.save();
+
+    if (user) {
+      try {
+        await sendPasswordResetEmail(cleanEmail, code);
+      } catch (error) {
+        console.error('Password reset email delivery failed:', error.message);
+        return res.status(503).json({ message: 'Could not send the password reset email. Please try again later.' });
+      }
+    }
+
+    return res.status(200).json({
+      message: 'If an account exists for this email, a verification code has been sent.',
+    });
+  } catch (error) {
+    console.error('Password reset request failed:', error);
+    return res.status(500).json({ message: 'Could not start password reset. Please try again.' });
+  }
+};
+
+const verifyPasswordResetOtp = async (req, res) => {
+  try {
+    const { email, code } = req.body || {};
+    const cleanEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+    if (!EMAIL_PATTERN.test(cleanEmail) || cleanEmail.length > 254 || typeof code !== 'string' || !OTP_PATTERN.test(code)) {
+      return res.status(400).json({ message: 'Enter a valid email address and 6-digit verification code.' });
+    }
+
+    const reset = await PasswordReset.findOne({
+      email: cleanEmail,
+      expiresAt: { $gt: new Date() },
+      attempts: { $lt: MAX_OTP_ATTEMPTS },
+      resetTokenHash: { $exists: false },
+    });
+    if (!reset) {
+      return res.status(400).json({ message: 'Verification code is invalid or expired. Please request a new code.' });
+    }
+
+    const actualHash = createOtpHash(cleanEmail, code);
+    if (!crypto.timingSafeEqual(reset.codeHash, actualHash)) {
+      const updatedReset = await PasswordReset.findOneAndUpdate(
+        {
+          email: cleanEmail,
+          codeHash: reset.codeHash,
+          expiresAt: { $gt: new Date() },
+          attempts: { $lt: MAX_OTP_ATTEMPTS },
+          resetTokenHash: { $exists: false },
+        },
+        { $inc: { attempts: 1 } },
+        { new: true }
+      );
+      if (!updatedReset || updatedReset.attempts >= MAX_OTP_ATTEMPTS) {
+        await PasswordReset.deleteOne({ email: cleanEmail, attempts: { $gte: MAX_OTP_ATTEMPTS } });
+        return res.status(429).json({ message: 'Too many incorrect codes. Please request a new code.' });
+      }
+      return res.status(400).json({ message: 'Incorrect verification code. Please try again.' });
+    }
+
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetTokenExpiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MS);
+    const verifiedReset = await PasswordReset.findOneAndUpdate(
+      {
+        email: cleanEmail,
+        codeHash: reset.codeHash,
+        expiresAt: { $gt: new Date() },
+        attempts: { $lt: MAX_OTP_ATTEMPTS },
+        resetTokenHash: { $exists: false },
+      },
+      {
+        $set: {
+          resetTokenHash: crypto.createHash('sha256').update(resetToken).digest(),
+          resetTokenExpiresAt,
+          expiresAt: resetTokenExpiresAt,
+        },
+        $unset: { codeHash: '' },
+      },
+      { new: true }
+    );
+
+    if (!verifiedReset) {
+      return res.status(400).json({ message: 'Verification code is invalid or expired. Please request a new code.' });
+    }
+
+    return res.status(200).json({ message: 'Email verified. Set your new password.', resetToken });
+  } catch (error) {
+    console.error('Password reset code verification failed:', error);
+    return res.status(500).json({ message: 'Could not verify the code. Please try again.' });
+  }
+};
+
+const resetPassword = async (req, res) => {
+  try {
+    const { email, resetToken, password, confirmPassword } = req.body || {};
+    const cleanEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+
+    if (!EMAIL_PATTERN.test(cleanEmail) || cleanEmail.length > 254
+      || typeof resetToken !== 'string' || !/^[a-f\d]{64}$/i.test(resetToken)) {
+      return res.status(400).json({ message: 'Password reset session is invalid. Please verify your email again.' });
+    }
+    if (typeof password !== 'string' || !PASSWORD_PATTERN.test(password) || Buffer.byteLength(password, 'utf8') > 72) {
+      return res.status(400).json({
+        message: 'Password must be at least 10 characters and include an uppercase letter, a number, and one of these symbols: @ , . / (maximum 72 bytes)',
+      });
+    }
+    if (password !== confirmPassword) {
+      return res.status(400).json({ message: 'Passwords do not match.' });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const reset = await PasswordReset.findOneAndUpdate(
+      {
+        email: cleanEmail,
+        resetTokenHash: crypto.createHash('sha256').update(resetToken).digest(),
+        resetTokenExpiresAt: { $gt: new Date() },
+      },
+      { $unset: { resetTokenHash: '', resetTokenExpiresAt: '' } },
+      { new: false }
+    );
+    if (!reset) {
+      return res.status(400).json({ message: 'Password reset session is invalid or expired. Please request a new code.' });
+    }
+
+    const result = await User.updateOne({ email: cleanEmail }, { $set: { password: hashedPassword } });
+    await PasswordReset.deleteOne({ _id: reset._id });
+    if (!result.matchedCount) {
+      return res.status(400).json({ message: 'Account was not found. Please create an account first.' });
+    }
+
+    return res.status(200).json({ message: 'Password reset successful. Please log in with your new password.' });
+  } catch (error) {
+    console.error('Password reset failed:', error);
+    return res.status(500).json({ message: 'Could not reset your password. Please try again.' });
+  }
 };
 
 const generateToken = (id) => {
@@ -268,4 +455,7 @@ module.exports = {
   registerUser,
   verifyEmail,
   loginUser,
+  forgotPassword,
+  verifyPasswordResetOtp,
+  resetPassword,
 };
