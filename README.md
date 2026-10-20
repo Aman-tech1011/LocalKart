@@ -11,7 +11,7 @@ A full-stack marketplace project with a React frontend and a Node.js + Express b
 
 1. Install dependencies with `npm --prefix frontend install` and `npm --prefix backend install`.
 2. Start MongoDB locally or use a MongoDB Atlas URI.
-3. Copy `backend/.env.example` to `backend/.env` and set `MONGO_URI` and a long, random `JWT_SECRET`. Set `CAMPUS_NAME` to enforce one university for all visitors. When it is omitted, signed-in students are scoped by the college name supplied during registration; public browsing is not locked to one campus.
+3. Copy `backend/.env.example` to `backend/.env` and set `MONGO_URI`, a long, random `JWT_SECRET`, and SMTP settings (`SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD`, and optionally `EMAIL_FROM`) so signup verification codes can be emailed. For Gmail, use an app password rather than your account password. Set `CAMPUS_NAME` to enforce one university for all visitors. When it is omitted, signed-in students are scoped by the college name supplied during registration; public browsing is not locked to one campus.
 4. Run `npm run dev` from the project root. The backend serves the API and Vite-powered frontend at `http://localhost:6002` by default. Change `PORT` in `backend/.env` if that port is already in use. If you run the frontend separately on Vite (usually port `5173`), keep the backend running on port `6002`; the frontend connects to it automatically. For a custom backend port, set `VITE_BACKEND_PORT` in the frontend environment or set `VITE_API_URL` to the full API URL.
 
 ## Marketplace flows
