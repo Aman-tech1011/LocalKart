@@ -54,22 +54,47 @@ function App() {
             </Routes>
           </main>
           <footer className="site-footer">
-            <div className="footer-content">
+            <div className="footer-inner">
               <div className="footer-brand">
                 <div className="brand-wrap">
                   <div className="brand-badge">L</div>
                   <span className="brand-name">LocalKart</span>
                 </div>
-                <p>Affordable student essentials, right around your campus.</p>
+                <p>
+                  Affordable essentials, trusted deals, and a safer way to buy and sell
+                  within your campus community.
+                </p>
+                <div className="footer-meta">
+                  <span>Campus trusted</span>
+                  <span>Verified listings</span>
+                </div>
               </div>
 
-              <div className="footer-links">
+              <div className="footer-column">
+                <h4>Explore</h4>
                 <Link to="/">Home</Link>
-                <Link to="/dashboard">Dashboard</Link>
-                <Link to="/messages">Messages</Link>
+                <Link to="/buy">Buy</Link>
                 <Link to="/sell">Sell</Link>
+                <Link to="/dashboard">Dashboard</Link>
+              </div>
+
+              <div className="footer-column">
+                <h4>Account</h4>
+                <Link to="/login">Login</Link>
+                <Link to="/messages">Messages</Link>
+                <Link to="/forgot-password">Reset password</Link>
+                <Link to="/dashboard">Profile</Link>
+              </div>
+
+              <div className="footer-column">
+                <h4>Support</h4>
+                <Link to="/">Help center</Link>
+                <Link to="/">Safety</Link>
+                <Link to="/">Community rules</Link>
+                <Link to="/">Contact us</Link>
               </div>
             </div>
+
             <div className="footer-bottom">
               <span>© {new Date().getFullYear()} LocalKart</span>
               <span>Built for campus communities</span>

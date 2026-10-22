@@ -140,17 +140,24 @@ a {
 
 .site-footer {
   margin-top: 24px;
-  padding: 34px max(28px, calc((100% - 1160px) / 2)) 20px;
-  background: var(--footer-bg);
+  padding: 42px max(28px, calc((100% - 1180px) / 2)) 20px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0));
   color: var(--footer-text);
+  border-top: 1px solid var(--footer-divider);
 }
 
-.footer-content,
+.footer-inner,
 .footer-bottom {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 24px;
+  gap: 28px;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.footer-brand {
+  flex: 1.4;
 }
 
 .footer-brand .brand-wrap {
@@ -158,33 +165,66 @@ a {
 }
 
 .footer-brand p {
-  max-width: 320px;
+  max-width: 360px;
   margin: 0;
   color: var(--footer-muted);
-  line-height: 1.6;
+  line-height: 1.7;
+  font-size: 0.97rem;
 }
 
-.footer-links {
+.footer-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 22px;
+  gap: 10px;
+  margin-top: 18px;
 }
 
-.footer-links a {
-  color: var(--footer-link);
+.footer-meta span {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--footer-divider);
+  color: var(--footer-text);
+  font-size: 0.76rem;
   font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
-.footer-links a:hover {
+.footer-column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 150px;
+}
+
+.footer-column h4 {
+  margin: 0 0 8px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--footer-muted);
+}
+
+.footer-column a {
+  color: var(--footer-link);
+  font-weight: 600;
+  transition: color 0.2s ease;
+}
+
+.footer-column a:hover {
   color: var(--primary-dark);
 }
 
 .footer-bottom {
   margin-top: 28px;
-  padding-top: 16px;
+  padding-top: 18px;
   border-top: 1px solid var(--footer-divider);
   color: var(--footer-muted);
-  font-size: 0.85rem;
+  font-size: 0.83rem;
+  align-items: center;
 }
 
 .page-container {
