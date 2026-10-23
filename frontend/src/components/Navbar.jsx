@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-export default function Navbar({ theme, onThemeChange }) {
+export default function Navbar() {
   const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -76,19 +76,6 @@ export default function Navbar({ theme, onThemeChange }) {
       <div className="nav-actions">
         <Link to={buyPath} className={`btn ${buyIsActive ? 'btn-primary' : 'btn-light'}`}>Buy</Link>
         <Link to={sellPath} className={`btn ${sellIsActive ? 'btn-primary' : 'btn-light'}`}>Sell</Link>
-        <button
-          className="theme-toggle"
-          type="button"
-          role="switch"
-          aria-checked={theme === 'dark'}
-          aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-          onClick={() => onThemeChange(theme === 'dark' ? 'light' : 'dark')}
-        >
-          <span className="theme-toggle-track" aria-hidden="true">
-            <span className="theme-toggle-thumb" />
-          </span>
-          <span className="theme-toggle-label">{theme === 'dark' ? 'Dark' : 'Light'}</span>
-        </button>
         {user && (
           <div className="profile-menu" ref={profileRef}>
             <button

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useLayoutEffect } from 'react';
 import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import HomePage from './pages/HomePage';
@@ -25,20 +25,22 @@ function RequireAuth({ children }) {
 }
 
 function App() {
-  const [theme, setTheme] = useState(() => (
-    localStorage.getItem('localkart-theme') === 'dark' ? 'dark' : 'light'
-  ));
+  useLayoutEffect(() => {
+    const colorScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const syncTheme = (event) => {
+      document.documentElement.dataset.theme = event.matches ? 'dark' : 'light';
+    };
 
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-    localStorage.setItem('localkart-theme', theme);
-  }, [theme]);
+    syncTheme(colorScheme);
+    colorScheme.addEventListener('change', syncTheme);
+    return () => colorScheme.removeEventListener('change', syncTheme);
+  }, []);
 
   return (
     <AuthProvider>
       <BrowserRouter>
         <div className="app-shell">
-          <Navbar theme={theme} onThemeChange={setTheme} />
+          <Navbar />
           <main className="page-container">
             <Routes>
               <Route path="/" element={<HomePage />} />

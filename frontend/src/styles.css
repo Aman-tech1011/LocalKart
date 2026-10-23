@@ -1996,62 +1996,6 @@ a {
   text-align: center;
 }
 
-.theme-toggle {
-  display: grid;
-  justify-items: center;
-  gap: 3px;
-  min-width: 52px;
-  padding: 0 2px;
-  border: 0;
-  background: transparent;
-  color: var(--muted);
-  cursor: pointer;
-}
-
-.theme-toggle-track {
-  position: relative;
-  display: block;
-  width: 42px;
-  height: 23px;
-  border: 1px solid #cbd3df;
-  border-radius: 999px;
-  background: #e6eaf0;
-  transition: background 0.2s ease, border-color 0.2s ease;
-}
-
-.theme-toggle-thumb {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 17px;
-  height: 17px;
-  border-radius: 50%;
-  background: white;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.24);
-  transition: transform 0.2s ease;
-}
-
-.theme-toggle[aria-checked="true"] .theme-toggle-track {
-  border-color: var(--primary);
-  background: var(--primary);
-}
-
-.theme-toggle[aria-checked="true"] .theme-toggle-thumb {
-  transform: translateX(19px);
-}
-
-.theme-toggle:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: 3px;
-  border-radius: 6px;
-}
-
-.theme-toggle-label {
-  font-size: 0.68rem;
-  font-weight: 700;
-  line-height: 1;
-}
-
 .profile-menu {
   position: relative;
   margin-left: 3px;
@@ -2214,10 +2158,6 @@ a {
   .nav-actions > .btn {
     min-width: 62px;
     padding: 10px 13px;
-  }
-
-  .theme-toggle {
-    min-width: 45px;
   }
 
   .profile-trigger {
