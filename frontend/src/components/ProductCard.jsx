@@ -2,14 +2,20 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import MarketplaceImage from './MarketplaceImage';
 
-export default function ProductCard({ product }) {
+export default function ProductCard({ product, variant = 'default' }) {
   const imageUrl = product.images?.[0] || product.image;
   const sellerName = typeof product.seller === 'object' ? product.seller.name : 'LocalKart seller';
 
   return (
-    <article className="product-card">
+    <article className={`product-card${variant === 'rail' ? ' product-card-rail' : ''}`}>
       <Link to={`/product/${product._id || product.id}`} aria-label={`View ${product.title}`}>
-        <MarketplaceImage src={imageUrl} alt={product.title} category={product.category} className="product-image" />
+        <MarketplaceImage
+          src={imageUrl}
+          alt={product.title}
+          category={product.category}
+          title={product.title}
+          className="product-image"
+        />
       </Link>
 
       <div className="product-content">
