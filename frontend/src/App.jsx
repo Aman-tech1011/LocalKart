@@ -13,10 +13,14 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import './styles.css';
 
 function RequireAuth({ children }) {
-  const { token } = useAuth();
+  const { user, loading } = useAuth();
   const location = useLocation();
 
-  if (!token) {
+  if (loading) {
+    return <div className="empty-state" role="status">Checking your session…</div>;
+  }
+
+  if (!user) {
     const next = `${location.pathname}${location.search}`;
     return <Navigate to={`/login?next=${encodeURIComponent(next)}`} replace />;
   }
