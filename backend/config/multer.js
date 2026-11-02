@@ -1,6 +1,7 @@
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 
 const uploadsDirectory = path.resolve(__dirname, '../uploads');
 fs.mkdirSync(uploadsDirectory, { recursive: true });
@@ -10,8 +11,7 @@ const storage = multer.diskStorage({
     cb(null, uploadsDirectory);
   },
   filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
+    cb(null, `${crypto.randomBytes(16).toString('hex')}.upload`);
   },
 });
 
@@ -21,14 +21,16 @@ const fileFilter = (req, file, cb) => {
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Only JPG, PNG, and WEBP images are allowed'), false);
+    const error = new Error('Only JPG, PNG, and WEBP images are allowed');
+    error.status = 400;
+    cb(error, false);
   }
 };
 
 const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: 5 * 1024 * 1024, files: 5, fields: 10, fieldSize: 20 * 1024 },
 });
 
 module.exports = upload;
