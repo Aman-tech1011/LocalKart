@@ -113,7 +113,13 @@ export default function ProductPage() {
       <Link className="back-link" to="/">← Back to campus listings</Link>
       <div className="product-detail-layout">
         <div className="product-detail-image-wrap">
-          <MarketplaceImage src={image} className={image ? 'product-detail-image' : 'product-image-placeholder'} alt={product.title} category={product.category} />
+          <MarketplaceImage
+            src={image}
+            className={image ? 'product-detail-image' : 'product-image-placeholder'}
+            alt={product.title}
+            category={product.category}
+            title={product.title}
+          />
         </div>
 
         <section className="product-detail-card">

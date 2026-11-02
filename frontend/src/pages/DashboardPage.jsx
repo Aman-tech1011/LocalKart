@@ -129,7 +129,13 @@ export default function DashboardPage() {
           <div className="seller-listings">
             {products.map((product) => (
               <article className="seller-listing" key={product._id}>
-                <MarketplaceImage src={product.images?.[0]} alt="" category={product.category} className="seller-listing-placeholder" />
+                <MarketplaceImage
+                  src={product.images?.[0]}
+                  alt={product.title}
+                  category={product.category}
+                  title={product.title}
+                  className="seller-listing-placeholder"
+                />
                 <div className="seller-listing-copy">
                   <span className={`status-chip ${product.status === 'sold' ? 'sold' : ''}`}>{product.status === 'sold' ? 'Sold' : product.purchaseRequestedBy ? 'Sale requested' : 'Live'}</span>
                   <h3><Link to={`/product/${product._id}`}>{product.title}</Link></h3>
