@@ -34,6 +34,11 @@ const userSchema = new mongoose.Schema(
       enum: ['student', 'seller'],
       default: 'student',
     },
+    authVersion: {
+      type: Number,
+      default: 0,
+      select: false,
+    },
   },
   {
     timestamps: true,

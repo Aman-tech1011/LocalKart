@@ -5,6 +5,13 @@ const nodemailer = require('nodemailer');
 const User = require('../models/User');
 const EmailVerification = require('../models/EmailVerification');
 const PasswordReset = require('../models/PasswordReset');
+const generateToken = require('../utils/generateToken');
+const {
+  clearSessionCookie,
+  getCookie,
+  SESSION_COOKIE,
+  setSessionCookie,
+} = require('../utils/cookies');
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_PATTERN = /^(?=.*[A-Z])(?=.*\d)(?=.*[@,./]).{10,}$/;
@@ -230,23 +237,21 @@ const resetPassword = async (req, res) => {
       return res.status(400).json({ message: 'Password reset session is invalid or expired. Please request a new code.' });
     }
 
-    const result = await User.updateOne({ email: cleanEmail }, { $set: { password: hashedPassword } });
+    const result = await User.updateOne(
+      { email: cleanEmail },
+      { $set: { password: hashedPassword }, $inc: { authVersion: 1 } }
+    );
     await PasswordReset.deleteOne({ _id: reset._id });
     if (!result.matchedCount) {
       return res.status(400).json({ message: 'Account was not found. Please create an account first.' });
     }
 
+    clearSessionCookie(res);
     return res.status(200).json({ message: 'Password reset successful. Please log in with your new password.' });
   } catch (error) {
     console.error('Password reset failed:', error);
     return res.status(500).json({ message: 'Could not reset your password. Please try again.' });
   }
-};
-
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: '7d',
-  });
 };
 
 const registerUser = async (req, res) => {
@@ -391,9 +396,9 @@ const verifyEmail = async (req, res) => {
     });
     await EmailVerification.deleteOne({ _id: verification._id });
 
+    setSessionCookie(res, generateToken(user._id, user.authVersion));
     return res.status(201).json({
       message: 'Email verified and account created successfully',
-      token: generateToken(user._id),
       user: {
         id: user._id,
         name: user.name,
@@ -421,7 +426,7 @@ const loginUser = async (req, res) => {
       return res.status(400).json({ message: 'Email and password are required' });
     }
 
-    const user = await User.findOne({ email: cleanEmail });
+    const user = await User.findOne({ email: cleanEmail }).select('+authVersion');
 
     if (!user) {
       return res.status(401).json({ message: 'Invalid email or password' });
@@ -433,9 +438,9 @@ const loginUser = async (req, res) => {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
+    setSessionCookie(res, generateToken(user._id, user.authVersion));
     res.status(200).json({
       message: 'Login successful',
-      token: generateToken(user._id),
       user: {
         id: user._id,
         name: user.name,
@@ -451,6 +456,37 @@ const loginUser = async (req, res) => {
   }
 };
 
+const getCurrentUser = (req, res) => {
+  const { _id, name, email, college, phone, role } = req.user;
+  return res.status(200).json({
+    user: { id: _id, name, email, college, phone, role },
+  });
+};
+
+const logoutUser = async (req, res) => {
+  try {
+    const token = getCookie(req, SESSION_COOKIE);
+    if (token) {
+      let decoded;
+      try {
+        decoded = jwt.verify(token, process.env.JWT_SECRET);
+      } catch (error) {
+        if (!(error instanceof jwt.JsonWebTokenError)) throw error;
+      }
+
+      if (decoded?.id) {
+        await User.updateOne({ _id: decoded.id }, { $inc: { authVersion: 1 } });
+      }
+    }
+
+    clearSessionCookie(res);
+    return res.status(200).json({ message: 'You have been signed out.' });
+  } catch (error) {
+    console.error('Logout failed:', error);
+    return res.status(500).json({ message: 'Could not sign out. Please try again.' });
+  }
+};
+
 module.exports = {
   registerUser,
   verifyEmail,
@@ -458,4 +494,6 @@ module.exports = {
   forgotPassword,
   verifyPasswordResetOtp,
   resetPassword,
+  getCurrentUser,
+  logoutUser,
 };
