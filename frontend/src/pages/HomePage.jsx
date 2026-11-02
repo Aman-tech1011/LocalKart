@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import api from '../api/axios';
 import MarketplaceImage from '../components/MarketplaceImage';
@@ -6,15 +6,22 @@ import ProductCard from '../components/ProductCard';
 import { useAuth } from '../context/AuthContext';
 
 const categories = [
-  { name: 'Mobiles', icon: '📱', search: 'mobile phone' },
-  { name: 'Laptops', icon: '💻', search: 'laptop notebook' },
-  { name: 'Audio', icon: '🎧', search: 'earphone earbuds headphones' },
-  { name: 'Books', icon: '📚', search: 'book textbook' },
-  { name: 'Cycles', icon: '🚲', search: 'cycle bicycle' },
-  { name: 'Accessories', icon: '⌨️', search: 'mouse keyboard' },
-  { name: 'Furniture', icon: '🪑', search: 'table lamp chair' },
-  { name: 'Study gear', icon: '🎒', search: 'study material drawing kit' },
+  { name: 'Mobiles', icon: '📱' },
+  { name: 'Laptops', icon: '💻' },
+  { name: 'Audio', icon: '🎧' },
+  { name: 'Books', icon: '📚' },
+  { name: 'Cycles', icon: '🚲' },
+  { name: 'Accessories', icon: '⌨️' },
+  { name: 'Furniture', icon: '🪑' },
+  { name: 'Study Materials', icon: '🎒', label: 'Study gear' },
+  { name: 'Electronics', icon: '📷' },
+  { name: 'Gadgets', icon: '⌚' },
+  { name: 'Clothes', icon: '👕' },
+  { name: 'Others', icon: '🛍️' },
 ];
+
+const getCategoryId = (categoryName) => `category-${categoryName.replace(/\W+/g, '-').toLowerCase()}`;
+const isDemoListing = (product) => product.isDemo === true || /^LocalKart Demo \d+:/i.test(product.title || '');
 
 const normalizeListingValue = (value) => String(value ?? '').trim().toLowerCase();
 
@@ -53,18 +60,12 @@ export default function HomePage() {
   const [products, setProducts] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [search, setSearch] = useState(searchParams.get('search') || '');
-  const [maxPrice, setMaxPrice] = useState(50000);
+  const [maxPrice, setMaxPrice] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
-  const [carouselIndex, setCarouselIndex] = useState(0);
-  const [carouselStep, setCarouselStep] = useState(0);
-  const [isCarouselAnimating, setIsCarouselAnimating] = useState(true);
-  const [activeCategory, setActiveCategory] = useState('');
   const sellPath = user ? '/sell' : '/login?next=%2Fsell';
-  const carouselIndexRef = useRef(0);
-  const carouselViewportRef = useRef(null);
-  const carouselTrackRef = useRef(null);
-  const carouselItemRef = useRef(null);
+  const categoryRailRefs = useRef({});
+  const pendingCategoryScrollRef = useRef('');
 
   useEffect(() => {
     if (location.hash !== '#marketplace') return undefined;
@@ -114,32 +115,81 @@ export default function HomePage() {
     };
   }, [user?.college]);
 
-  const filteredProducts = useMemo(() => {
-    return products.filter((product) => {
-      const searchableText = `${product.title || ''} ${product.category || ''} ${product.description || ''}`.toLowerCase();
-      const matchesCategory = !selectedCategory || selectedCategory
-        .split(' ')
-        .some((term) => searchableText.includes(term));
-      const matchesSearch = !search || searchableText.includes(search.toLowerCase());
-      const matchesPrice = Number(product.price) <= maxPrice;
-
-      return matchesCategory && matchesSearch && matchesPrice;
-    });
-  }, [selectedCategory, search, maxPrice, products]);
-
   useEffect(() => {
     const query = searchParams.get('search') || '';
     setSearch(query);
 
     if (query) {
       setSelectedCategory('');
-      setActiveCategory('');
     }
   }, [searchParams]);
 
-  const handleCategoryClick = (category) => {
-    setActiveCategory(category.name);
-    setSelectedCategory(category.search);
+  const maxAvailablePrice = useMemo(
+    () => Math.max(50000, ...products.map((product) => Math.ceil((Number(product.price) || 0) / 500) * 500)),
+    [products]
+  );
+
+  const filteredProducts = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return products.filter((product) => {
+      const searchableText = `${product.title || ''} ${product.category || ''} ${product.description || ''} ${product.location || ''}`.toLowerCase();
+      return product.status === 'active'
+        && (!query || searchableText.includes(query))
+        && Number(product.price) <= (maxPrice ?? maxAvailablePrice);
+    }).sort((first, second) => {
+      if (isDemoListing(first) !== isDemoListing(second)) return isDemoListing(first) ? 1 : -1;
+      return (Date.parse(second.createdAt) || 0) - (Date.parse(first.createdAt) || 0);
+    });
+  }, [search, maxPrice, maxAvailablePrice, products]);
+
+  const categoryRails = useMemo(() => {
+    const productsByCategory = new Map();
+    filteredProducts.forEach((product) => {
+      const categoryProducts = productsByCategory.get(product.category) || [];
+      if (categoryProducts.length < 20) categoryProducts.push(product);
+      productsByCategory.set(product.category, categoryProducts);
+    });
+
+    return categories
+      .map((category) => ({
+        ...category,
+        items: productsByCategory.get(category.name) || [],
+      }))
+      .filter(({ items }) => items.length > 0);
+  }, [filteredProducts]);
+
+  const visibleProductCount = categoryRails.reduce((count, category) => count + category.items.length, 0);
+
+  useEffect(() => {
+    const categoryName = pendingCategoryScrollRef.current;
+    if (!categoryName || categoryName !== selectedCategory) return;
+
+    const categorySection = document.getElementById(getCategoryId(categoryName));
+    if (categorySection) {
+      categorySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      pendingCategoryScrollRef.current = '';
+    } else if (!loading) {
+      pendingCategoryScrollRef.current = '';
+    }
+  }, [categoryRails, loading, selectedCategory]);
+
+  const handleCategoryClick = (categoryName) => {
+    const categorySection = document.getElementById(getCategoryId(categoryName));
+    if (categorySection) {
+      categorySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      pendingCategoryScrollRef.current = categoryName;
+    }
+    setSelectedCategory(categoryName);
+    setSearch('');
+    setSearchParams({});
+  };
+
+  const handleSeeAllListings = (event) => {
+    event.preventDefault();
+    setSelectedCategory('');
+    setSearch('');
+    setSearchParams({});
     document.getElementById('marketplace')?.scrollIntoView({ behavior: 'smooth' });
   };
 
@@ -150,101 +200,24 @@ export default function HomePage() {
     document.getElementById('marketplace')?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const featuredProducts = products.filter((product) => product.status === 'active').slice(0, 6);
-  const carouselProducts = featuredProducts.length > 0 ? featuredProducts : products.slice(0, 6);
-  const loopingCarouselProducts =
-    carouselProducts.length > 1 ? [...carouselProducts, ...carouselProducts] : carouselProducts;
+  const heroProducts = products
+    .filter((product) => product.status === 'active')
+    .slice(0, 2);
 
-  const measureCarouselStep = useCallback(() => {
-    if (!carouselItemRef.current || !carouselTrackRef.current) return;
-
-    const trackStyles = window.getComputedStyle(carouselTrackRef.current);
-    const gap = parseFloat(trackStyles.columnGap || trackStyles.gap || '0');
-    setCarouselStep(carouselItemRef.current.getBoundingClientRect().width + gap);
-  }, []);
-
-  useEffect(() => {
-    measureCarouselStep();
-
-    if (!carouselViewportRef.current) return undefined;
-
-    const observer = new ResizeObserver(measureCarouselStep);
-    observer.observe(carouselViewportRef.current);
-
-    return () => observer.disconnect();
-  }, [measureCarouselStep, carouselProducts.length]);
-
-  useEffect(() => {
-    carouselIndexRef.current = carouselIndex;
-  }, [carouselIndex]);
-
-  useEffect(() => {
-    setIsCarouselAnimating(false);
-    setCarouselIndex(0);
-
-    const frame = requestAnimationFrame(() => {
-      setIsCarouselAnimating(true);
-    });
-
-    return () => cancelAnimationFrame(frame);
-  }, [carouselProducts.length]);
-
-  const moveCarousel = useCallback(
-    (direction) => {
-      if (carouselProducts.length < 2) return;
-
-      if (direction > 0) {
-        setIsCarouselAnimating(true);
-        setCarouselIndex((currentIndex) => currentIndex + 1);
-        return;
-      }
-
-      if (carouselIndexRef.current === 0) {
-        setIsCarouselAnimating(false);
-        setCarouselIndex(carouselProducts.length);
-
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            setIsCarouselAnimating(true);
-            setCarouselIndex(carouselProducts.length - 1);
-          });
-        });
-        return;
-      }
-
-      setIsCarouselAnimating(true);
-      setCarouselIndex((currentIndex) => currentIndex - 1);
-    },
-    [carouselProducts.length]
-  );
-
-  const handleCarouselTransitionEnd = () => {
-    if (carouselProducts.length < 2 || carouselIndex < carouselProducts.length) return;
-
-    setIsCarouselAnimating(false);
-    setCarouselIndex(0);
-
-    requestAnimationFrame(() => {
-      setIsCarouselAnimating(true);
+  const scrollCategoryRail = (categoryName, direction) => {
+    const rail = categoryRailRefs.current[categoryName];
+    rail?.scrollBy({
+      left: direction * rail.clientWidth * 0.8,
+      behavior: 'smooth',
     });
   };
 
-  useEffect(() => {
-    if (carouselProducts.length < 2) return undefined;
-
-    const interval = setInterval(() => {
-      moveCarousel(1);
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, [carouselProducts.length, moveCarousel]);
-
   return (
-    <div>
+    <div className="home-page">
       <section className="landing-hero">
         <div className="landing-hero-copy">
           <span className="campus-tag"><span aria-hidden="true">✦</span> Your campus. Your marketplace.</span>
-          <h1>Good finds.<br /><span>Right around campus.</span></h1>
+          <h1>Good finds.<br /><span>Right on campus.</span></h1>
           <p>Buy and sell pre-loved essentials with students at your university. Great deals, easy meetups, less waste.</p>
           <form className="hero-search" role="search" onSubmit={handleHomeSearch}>
             <span aria-hidden="true">⌕</span>
@@ -264,160 +237,135 @@ export default function HomePage() {
           <div className="hero-trust"><span aria-hidden="true">✓</span> Made for students <span className="trust-dot">·</span> Meet on campus <span className="trust-dot">·</span> Shop local</div>
         </div>
         <div className="landing-hero-art" aria-label="Popular student essentials">
-          <div className="hero-art-glow" />
-          <div className="hero-item hero-item-laptop"><span>💻</span><small>Tech deals</small></div>
-          <div className="hero-item hero-item-book"><span>📚</span><small>Semester reads</small></div>
-          <div className="hero-item hero-item-cycle"><span>🚲</span><small>Campus rides</small></div>
-          <div className="hero-art-caption"><span className="online-dot" /> New finds added every day</div>
+          <div className="hero-art-grid" aria-hidden="true" />
+          <div className="hero-art-label"><span className="online-dot" /> THE CAMPUS EDIT</div>
+          {heroProducts.length > 0 ? (
+            heroProducts.map((product, index) => (
+              <Link
+                className={`hero-product-preview hero-product-preview-${index + 1}`}
+                key={product._id || product.id}
+                to={`/product/${product._id || product.id}`}
+              >
+                <MarketplaceImage
+                  src={product.images?.[0] || product.image}
+                  alt={product.title}
+                  category={product.category}
+                  title={product.title}
+                  className="hero-product-image"
+                />
+                <div className="hero-product-details">
+                  <div>
+                    <span>{product.category || 'Campus find'}</span>
+                    <strong>{product.title}</strong>
+                  </div>
+                  <b>₹{Number(product.price || 0).toLocaleString('en-IN')}</b>
+                </div>
+              </Link>
+            ))
+          ) : (
+            <>
+              <div className="hero-product-preview hero-product-preview-1 hero-product-placeholder">
+                <span aria-hidden="true">🎧</span>
+                <div className="hero-product-details">
+                  <div><span>STUDENT ESSENTIAL</span><strong>Find your next favourite</strong></div>
+                  <b>Explore</b>
+                </div>
+              </div>
+              <div className="hero-product-preview hero-product-preview-2 hero-product-placeholder">
+                <span aria-hidden="true">📚</span>
+                <div className="hero-product-details">
+                  <div><span>MADE FOR CAMPUS</span><strong>Good things, close by</strong></div>
+                  <b>Local</b>
+                </div>
+              </div>
+            </>
+          )}
+          <div className="hero-art-caption"><span className="online-dot" /> Better finds, closer to home</div>
         </div>
       </section>
 
       <section className="category-section" aria-labelledby="category-title">
         <div className="section-heading category-heading">
           <div><p className="eyebrow">Find what you need</p><h2 id="category-title">Shop by category</h2></div>
-          <a className="text-link" href="#marketplace">See all listings <span aria-hidden="true">→</span></a>
+          <a className="text-link" href="#marketplace" onClick={handleSeeAllListings}>See all listings <span aria-hidden="true">→</span></a>
         </div>
         <div className="category-grid">
           {categories.map((category) => (
             <button
-              className={`category-tile${activeCategory === category.name ? ' active' : ''}`}
+              className={`category-tile${selectedCategory === category.name ? ' active' : ''}`}
               key={category.name}
               type="button"
-              onClick={() => handleCategoryClick(category)}
+              aria-pressed={selectedCategory === category.name}
+              onClick={() => handleCategoryClick(category.name)}
             >
               <span className="category-icon" aria-hidden="true">{category.icon}</span>
-              <span>{category.name}</span>
+              <span>{category.label || category.name}</span>
             </button>
           ))}
         </div>
       </section>
 
-      <section className="item-carousel" aria-label="Featured marketplace items">
-        <div className="carousel-heading">
+      <section className="filter-section section-block product-browser" id="marketplace" aria-labelledby="marketplace-title">
+        <div className="section-heading product-browser-heading">
           <div>
-            <p className="eyebrow">Fresh on campus</p>
-            <h2>Find your next essential</h2>
+            <p className="eyebrow">Browse campus listings</p>
+            <h2 id="marketplace-title">{search ? 'Search results' : 'Campus marketplace'}</h2>
           </div>
-          <div className="carousel-controls">
-            <button
-              className="carousel-button"
-              type="button"
-              aria-label="Previous item"
-              onClick={() => moveCarousel(-1)}
-              disabled={carouselProducts.length < 2}
-            >
-              &#8592;
-            </button>
-            <button
-              className="carousel-button"
-              type="button"
-              aria-label="Next item"
-              onClick={() => moveCarousel(1)}
-              disabled={carouselProducts.length < 2}
-            >
-              &#8594;
-            </button>
-          </div>
-        </div>
-
-        {loading ? (
-          <div className="carousel-empty">Loading latest items...</div>
-        ) : carouselProducts.length > 0 ? (
-          <div className="carousel-viewport" ref={carouselViewportRef}>
-            <div
-              className={`carousel-track${isCarouselAnimating ? '' : ' no-transition'}`}
-              ref={carouselTrackRef}
-              onTransitionEnd={handleCarouselTransitionEnd}
-              style={{ transform: `translate3d(-${carouselIndex * carouselStep}px, 0, 0)` }}
-            >
-              {loopingCarouselProducts.map((product, index) => {
-                const image = product.images?.[0] || product.image;
-
-                return (
-                  <article
-                    className="carousel-item"
-                    key={`${product._id || product.id}-${index}`}
-                    ref={index === 0 ? carouselItemRef : null}
-                  >
-                    <MarketplaceImage src={image} alt={product.title} category={product.category} />
-                    <div className="carousel-item-content">
-                      <span>{product.category || 'Campus find'}</span>
-                      <h3>{product.title}</h3>
-                      <strong>₹{Number(product.price || 0).toLocaleString('en-IN')}</strong>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          </div>
-        ) : (
-          <div className="carousel-empty">{loadError || 'No live items yet. Be the first to list something for your campus.'}</div>
-        )}
-      </section>
-
-      <section className="section-block">
-        <div className="section-heading">
-          <div><p className="eyebrow">Picked for campus life</p><h2>Popular right now</h2></div>
-        </div>
-
-        <div className="featured-grid">
-          {loading ? (
-            <div className="empty-state">Loading products...</div>
-          ) : loadError ? (
-            <div className="empty-state">{loadError}</div>
-          ) : (
-            featuredProducts.map((product) => (
-              <ProductCard key={product._id || product.id} product={product} />
-            ))
-          )}
-        </div>
-      </section>
-
-      <section className="filter-section section-block" id="marketplace">
-        <div className="section-heading">
-          <div><p className="eyebrow">Buy from students near you</p><h2>Campus marketplace</h2></div>
-          <span className="listing-count">{filteredProducts.length} {filteredProducts.length === 1 ? 'item' : 'items'}</span>
+          <span className="listing-count">
+            {visibleProductCount} {visibleProductCount === 1 ? 'item' : 'items'}
+          </span>
         </div>
 
         <div className="filter-row">
-          <div className="category-pills">
-            {['All', ...new Set(products.map((product) => product.category).filter(Boolean))].map((category) => (
-              <button
-                key={category}
-                className={(selectedCategory === '' && category === 'All') || selectedCategory === category.toLowerCase() ? 'pill active' : 'pill'}
-                onClick={() => {
-                  setSelectedCategory(category === 'All' ? '' : category.toLowerCase());
-                  setActiveCategory('');
-                }}
-              >
-                {category}
-              </button>
-            ))}
-          </div>
-
-          <div className="price-filter">
-            <label htmlFor="priceRange">Max price: ₹{maxPrice}</label>
+          <label className="price-filter" htmlFor="priceRange">
+            <span>Max price: ₹{(maxPrice ?? maxAvailablePrice).toLocaleString('en-IN')}</span>
             <input
               id="priceRange"
               type="range"
               min="500"
-              max="50000"
+              max={maxAvailablePrice}
               step="500"
-              value={maxPrice}
+              value={Math.min(maxPrice ?? maxAvailablePrice, maxAvailablePrice)}
               onChange={(e) => setMaxPrice(Number(e.target.value))}
             />
-          </div>
+          </label>
         </div>
 
-        <div className="product-grid">
-          {!loading && filteredProducts.length > 0 ? (
-            filteredProducts.map((product) => (
-              <ProductCard key={product._id || product.id} product={product} />
-            ))
-          ) : (
-            <div className="empty-state">{loading ? 'Loading products...' : loadError || 'No items match your filters.'}</div>
-          )}
-        </div>
+        {loading ? (
+          <div className="empty-state">Loading products...</div>
+        ) : loadError ? (
+          <div className="empty-state">{loadError}</div>
+        ) : categoryRails.length > 0 ? (
+          <div className="category-shelves">
+            {categoryRails.map(({ name, items }) => (
+              <section className="category-shelf" id={getCategoryId(name)} key={name} aria-labelledby={`${getCategoryId(name)}-title`}>
+                <div className="category-shelf-heading">
+                  <div>
+                    <p className="eyebrow">{items.length} {items.length === 1 ? 'campus find' : 'campus finds'}</p>
+                    <h3 id={`${getCategoryId(name)}-title`}>{name}</h3>
+                  </div>
+                  <div className="product-rail-actions">
+                    <button className="carousel-button" type="button" aria-label={`Scroll ${name} products left`} onClick={() => scrollCategoryRail(name, -1)}>&#8592;</button>
+                    <button className="carousel-button" type="button" aria-label={`Scroll ${name} products right`} onClick={() => scrollCategoryRail(name, 1)}>&#8594;</button>
+                  </div>
+                </div>
+                <div
+                  className="category-product-rail"
+                  ref={(rail) => {
+                    categoryRailRefs.current[name] = rail;
+                  }}
+                  aria-label={`${name} listings`}
+                >
+                  {items.map((product) => (
+                    <ProductCard key={product._id || product.id} product={product} variant="rail" />
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+        ) : (
+          <div className="empty-state">{products.length ? 'No items match your filters.' : 'No live items yet. Be the first to list something for your campus.'}</div>
+        )}
       </section>
 
       <section className="seller-banner">
