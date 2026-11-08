@@ -1,31 +1,33 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const { getCookie, SESSION_COOKIE } = require('../utils/cookies');
 
 const protect = async (req, res, next) => {
-  let token;
-
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith('Bearer ')
-  ) {
-    token = req.headers.authorization.split(' ')[1];
+  const token = getCookie(req, SESSION_COOKIE);
+  if (!token) {
+    return res.status(401).json({ message: 'Please sign in to continue.' });
   }
 
-  if (!token) {
-    return res.status(401).json({ message: 'Not authorized, no token' });
+  let decoded;
+  try {
+    decoded = jwt.verify(token, process.env.JWT_SECRET);
+  } catch {
+    return res.status(401).json({ message: 'Your session is invalid or expired. Please sign in again.' });
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = await User.findById(decoded.id).select('-password');
+    req.user = await User.findById(decoded.id).select('+authVersion -password');
 
     if (!req.user) {
-      return res.status(401).json({ message: 'User not found' });
+      return res.status(401).json({ message: 'Your account could not be found. Please sign in again.' });
+    }
+    if (Number(decoded.authVersion || 0) !== Number(req.user.authVersion || 0)) {
+      return res.status(401).json({ message: 'Your session has ended. Please sign in again.' });
     }
 
-    next();
+    return next();
   } catch (error) {
-    return res.status(401).json({ message: 'Token is invalid or expired' });
+    return next(error);
   }
 };
 

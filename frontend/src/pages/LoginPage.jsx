@@ -50,9 +50,9 @@ export default function LoginPage() {
         return;
       }
 
-      const { token, user } = response.data;
+      const { user } = response.data;
 
-      login(user, token);
+      login(user);
       setFormData({ name: '', email: '', password: '', college: '' });
       setVerificationCode('');
       setIsOtpSent(false);

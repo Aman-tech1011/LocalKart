@@ -8,6 +8,7 @@ export default function Navbar() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [profileOpen, setProfileOpen] = useState(false);
+  const [logoutError, setLogoutError] = useState('');
   const profileRef = useRef(null);
 
   useEffect(() => {
@@ -37,10 +38,16 @@ export default function Navbar() {
     navigate(query && user ? `/buy?search=${encodeURIComponent(query)}` : buyPath);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setProfileOpen(false);
-    logout();
-    navigate('/', { replace: true });
+    setLogoutError('');
+    try {
+      await logout();
+      navigate('/', { replace: true });
+    } catch (error) {
+      setLogoutError(error.response?.data?.message || 'Could not sign out. Please try again.');
+      setProfileOpen(true);
+    }
   };
 
   const buyPath = user ? '/buy' : '/login?intent=buy&next=%2Fbuy';
@@ -90,6 +97,7 @@ export default function Navbar() {
             </button>
             {profileOpen && (
               <div className="profile-dropdown" role="menu">
+                {logoutError && <p className="profile-menu-error" role="alert">{logoutError}</p>}
                 <div className="profile-summary">
                   <span className="profile-avatar profile-avatar-large" aria-hidden="true">{initials}</span>
                   <div>

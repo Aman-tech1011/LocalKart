@@ -1,3 +1,4 @@
+const fs = require('fs/promises');
 const Product = require('../models/Product');
 const Message = require('../models/Message');
 const { cloudinary, hasCloudinaryConfig } = require('../config/cloudinary');
@@ -5,6 +6,15 @@ const { cloudinary, hasCloudinaryConfig } = require('../config/cloudinary');
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const demoTitlePattern = /^LocalKart Demo \d+:/i;
 const isDemoProduct = (product) => product.isDemo === true || demoTitlePattern.test(product.title);
+const removeLocalUploads = async (files) => {
+  await Promise.all((files || []).map(async (file) => {
+    try {
+      await fs.unlink(file.path);
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error;
+    }
+  }));
+};
 
 const getReplacedDemoIds = async (campusName) => {
   const campusFilter = campusName
@@ -37,50 +47,21 @@ const getReplacedDemoIds = async (campusName) => {
     }).sort({ college: 1, category: 1, createdAt: 1, _id: 1 }).select('_id college category'),
   ]);
 
-  const realCountsByCampus = new Map();
   const remainingByCampusCategory = new Map();
 
   for (const { _id, count } of realCounts) {
-    const campusKey = _id.college;
-    const categoryKey = `${campusKey}|${_id.category}`;
-    realCountsByCampus.set(campusKey, (realCountsByCampus.get(campusKey) || 0) + count);
+    const categoryKey = JSON.stringify([String(_id.college || '').toLowerCase(), _id.category]);
     remainingByCampusCategory.set(categoryKey, count);
-  }
-
-  const demoCountsByCampus = new Map();
-  for (const product of demoProducts) {
-    const campusKey = product.college.toLowerCase();
-    demoCountsByCampus.set(campusKey, (demoCountsByCampus.get(campusKey) || 0) + 1);
-  }
-
-  const remainingToReplaceByCampus = new Map();
-  for (const [campusKey, realCount] of realCountsByCampus) {
-    remainingToReplaceByCampus.set(
-      campusKey,
-      Math.min(realCount, demoCountsByCampus.get(campusKey) || 0)
-    );
   }
 
   const replacedIds = new Set();
   for (const product of demoProducts) {
-    const campusKey = product.college.toLowerCase();
-    const campusRemaining = remainingToReplaceByCampus.get(campusKey) || 0;
-    const categoryKey = `${campusKey}|${product.category}`;
+    const categoryKey = JSON.stringify([String(product.college || '').toLowerCase(), product.category]);
     const categoryRemaining = remainingByCampusCategory.get(categoryKey) || 0;
-    if (!campusRemaining || !categoryRemaining) continue;
+    if (!categoryRemaining) continue;
 
     replacedIds.add(product._id.toString());
-    remainingToReplaceByCampus.set(campusKey, campusRemaining - 1);
     remainingByCampusCategory.set(categoryKey, categoryRemaining - 1);
-  }
-
-  for (const product of demoProducts) {
-    const campusKey = product.college.toLowerCase();
-    const campusRemaining = remainingToReplaceByCampus.get(campusKey) || 0;
-    if (!campusRemaining || replacedIds.has(product._id.toString())) continue;
-
-    replacedIds.add(product._id.toString());
-    remainingToReplaceByCampus.set(campusKey, campusRemaining - 1);
   }
 
   return demoProducts
@@ -91,9 +72,26 @@ const getReplacedDemoIds = async (campusName) => {
 const createProduct = async (req, res) => {
   try {
     const { title, description, category, price, condition, location } = req.body;
+    const cleanTitle = typeof title === 'string' ? title.trim() : '';
+    const cleanDescription = typeof description === 'string' ? description.trim() : '';
+    const cleanCategory = typeof category === 'string' ? category.trim() : '';
     const priceValue = Number(price);
 
-    if (!title?.trim() || !description?.trim() || !category || price === undefined || !Number.isFinite(priceValue) || priceValue < 0) {
+    if (
+      !cleanTitle
+      || cleanTitle.length > 120
+      || !cleanDescription
+      || cleanDescription.length > 3000
+      || !cleanCategory
+      || price === undefined
+      || price === null
+      || price === ''
+      || !Number.isFinite(priceValue)
+      || priceValue < 0
+      || (location !== undefined && typeof location !== 'string')
+      || (typeof location === 'string' && location.trim().length > 160)
+    ) {
+      await removeLocalUploads(req.files);
       return res.status(400).json({ message: 'Please provide a title, description, category and valid price' });
     }
 
@@ -110,12 +108,12 @@ const createProduct = async (req, res) => {
     }
 
     const product = await Product.create({
-      title: title.trim(),
-      description: description.trim(),
-      category,
+      title: cleanTitle,
+      description: cleanDescription,
+      category: cleanCategory,
       price: priceValue,
       condition: condition || 'Good',
-      location: location || '',
+      location: typeof location === 'string' ? location.trim() : '',
       images: imageUrls,
       seller: req.user._id,
       college: process.env.CAMPUS_NAME?.trim() || req.user.college,
@@ -127,6 +125,11 @@ const createProduct = async (req, res) => {
     });
   } catch (error) {
     console.error('Product creation failed:', error);
+    try {
+      await removeLocalUploads(req.files);
+    } catch (cleanupError) {
+      console.error('Uploaded image cleanup failed:', cleanupError);
+    }
     res.status(error.name === 'ValidationError' ? 400 : 500).json({
       message: error.name === 'ValidationError' ? 'Please check the listing details' : 'Product creation failed',
     });

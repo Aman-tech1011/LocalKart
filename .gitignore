@@ -4,3 +4,4 @@ node_modules/
 !backend/.env.example
 .DS_Store
 npm-debug.log*
+frontend/.tsupgrader/
