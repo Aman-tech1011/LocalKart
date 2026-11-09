@@ -31,7 +31,10 @@ const loginLimiter = rateLimit({
 });
 const emailCodeLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
-  limit: 5,
+  // Campus WiFi/NAT shares one public IP across many students, so the
+  // per-IP cap must be roomy. The per-email cap (5/hour in the controller)
+  // is the real anti-spam protection and stays unchanged.
+  limit: 20,
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: 'Too many code requests. Please wait an hour and try again.' },
