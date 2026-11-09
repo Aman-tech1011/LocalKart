@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './OtpVerification.css';
 
 // OTP verification — Micro UI #3/10 V4 look (3D glass cubes, space scene),
