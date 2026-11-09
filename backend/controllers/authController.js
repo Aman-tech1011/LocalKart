@@ -267,8 +267,18 @@ const registerUser = async (req, res) => {
       });
     }
 
-    if (process.env.CAMPUS_NAME && cleanCollege.toLowerCase() !== process.env.CAMPUS_NAME.trim().toLowerCase()) {
-      return res.status(403).json({ message: `LocalKart is currently only available to ${process.env.CAMPUS_NAME.trim()} students` });
+    // Lenient campus match: accept any reasonable variation of the campus
+    // name, e.g. "GLA", "GLA University", "GLA University Mathura",
+    // "GLA University Mathura Uttar Pradesh". The campus key is the first
+    // word of CAMPUS_NAME and must appear as a whole word in the input, so
+    // "Glasgow" does not match "GLA".
+    const campusName = process.env.CAMPUS_NAME?.trim();
+    if (campusName) {
+      const campusKey = campusName.split(/\s+/)[0].toLowerCase();
+      const collegeWords = cleanCollege.toLowerCase().split(/[\s,]+/).filter(Boolean);
+      if (!collegeWords.includes(campusKey)) {
+        return res.status(403).json({ message: `LocalKart is currently only available to ${campusName} students` });
+      }
     }
 
     if (!EMAIL_PATTERN.test(cleanEmail) || cleanEmail.length > 254) {
