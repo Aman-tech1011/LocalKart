@@ -1,7 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-const nodemailer = require('nodemailer');
 const User = require('../models/User');
 const EmailVerification = require('../models/EmailVerification');
 const PasswordReset = require('../models/PasswordReset');
@@ -24,15 +23,10 @@ const MAX_OTP_ATTEMPTS = 5;
 const RESET_TOKEN_TTL_MS = 10 * 60 * 1000;
 
 const getEmailConfigurationError = () => {
-  const requiredSettings = ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASSWORD', 'JWT_SECRET'];
+  const requiredSettings = ['RESEND_API_KEY', 'JWT_SECRET'];
   const missingSettings = requiredSettings.filter((setting) => !process.env[setting]);
   if (missingSettings.length > 0) {
     return `Email verification is not configured. Add these settings to backend/.env: ${missingSettings.join(', ')}.`;
-  }
-
-  const port = Number(process.env.SMTP_PORT);
-  if (!Number.isInteger(port) || port < 1 || port > 65535) {
-    return 'SMTP_PORT must be a valid port number.';
   }
   return null;
 };
@@ -42,26 +36,37 @@ const createOtpHash = (email, code) => crypto
   .update(`${email}:${code}`)
   .digest();
 
-const createEmailTransporter = () => {
-  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD } = process.env;
+// Email is sent via the Resend HTTP API (not SMTP) because Render's
+// outbound SMTP connections to Gmail time out on every port. Resend works
+// over HTTPS, which Render can reach. The sender defaults to Resend's
+// onboarding address; set RESEND_FROM to a verified domain sender to use
+// a custom from address.
+const sendEmailViaResend = async ({ to, subject, text }) => {
   const configurationError = getEmailConfigurationError();
   if (configurationError) throw new Error(configurationError);
 
-  return nodemailer.createTransport({
-    host: SMTP_HOST,
-    port: Number(SMTP_PORT),
-    secure: process.env.SMTP_SECURE === 'true',
-    auth: {
-      user: SMTP_USER,
-      pass: SMTP_PASSWORD,
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
     },
+    body: JSON.stringify({
+      from: process.env.RESEND_FROM || 'LocalKart <onboarding@resend.dev>',
+      to,
+      subject,
+      text,
+    }),
   });
+
+  if (!response.ok) {
+    const detail = await response.text().catch(() => '');
+    throw new Error(`Email sending failed (${response.status}): ${detail}`);
+  }
 };
 
 const sendVerificationEmail = async (email, code) => {
-  const transporter = createEmailTransporter();
-  await transporter.sendMail({
-    from: process.env.EMAIL_FROM || process.env.SMTP_USER,
+  await sendEmailViaResend({
     to: email,
     subject: 'Your LocalKart verification code',
     text: `Your LocalKart verification code is ${code}. It expires in 10 minutes. If you did not request this code, you can ignore this email.`,
@@ -69,9 +74,7 @@ const sendVerificationEmail = async (email, code) => {
 };
 
 const sendPasswordResetEmail = async (email, code) => {
-  const transporter = createEmailTransporter();
-  await transporter.sendMail({
-    from: process.env.EMAIL_FROM || process.env.SMTP_USER,
+  await sendEmailViaResend({
     to: email,
     subject: 'Reset your LocalKart password',
     text: `Your LocalKart password reset code is ${code}. It expires in 10 minutes. If you did not request a password reset, you can ignore this email.`,
