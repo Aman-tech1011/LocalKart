@@ -312,7 +312,7 @@
 .otp-v4 .sub b {
   color: var(--text);
   font-weight: 550;
-  word-break: break-all;
+  overflow-wrap: anywhere;
 }
 
 /* cube stage */
