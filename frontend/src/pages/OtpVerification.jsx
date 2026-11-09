@@ -547,7 +547,7 @@ export default function OtpVerification({ email, onVerify, onResend, onBack, onS
         <main className="panel" ref={cardRef}>
           <h1>Verify your account</h1>
           <p className="sub">
-            Enter the 6-digit code we sent to <b>{email}</b>
+            Enter the 6-digit code we sent to{' '}<b>{email}</b>
           </p>
 
           <div className="wrap">
