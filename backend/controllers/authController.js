@@ -1,7 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-const nodemailer = require('nodemailer');
 const User = require('../models/User');
 const EmailVerification = require('../models/EmailVerification');
 const PasswordReset = require('../models/PasswordReset');
@@ -17,22 +16,17 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_PATTERN = /^(?=.*[A-Z])(?=.*\d)(?=.*[@,./]).{10,}$/;
 const OTP_PATTERN = /^\d{6}$/;
 const OTP_TTL_MS = 10 * 60 * 1000;
-const RESEND_COOLDOWN_MS = 60 * 1000;
+const EMAIL_SEND_COOLDOWN_MS = 60 * 1000;
 const SEND_LIMIT_WINDOW_MS = 60 * 60 * 1000;
 const MAX_SENDS_PER_WINDOW = 5;
 const MAX_OTP_ATTEMPTS = 5;
 const RESET_TOKEN_TTL_MS = 10 * 60 * 1000;
 
 const getEmailConfigurationError = () => {
-  const requiredSettings = ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASSWORD', 'JWT_SECRET'];
+  const requiredSettings = ['BREVO_API_KEY', 'BREVO_FROM', 'JWT_SECRET'];
   const missingSettings = requiredSettings.filter((setting) => !process.env[setting]);
   if (missingSettings.length > 0) {
     return `Email verification is not configured. Add these settings to backend/.env: ${missingSettings.join(', ')}.`;
-  }
-
-  const port = Number(process.env.SMTP_PORT);
-  if (!Number.isInteger(port) || port < 1 || port > 65535) {
-    return 'SMTP_PORT must be a valid port number.';
   }
   return null;
 };
@@ -42,26 +36,41 @@ const createOtpHash = (email, code) => crypto
   .update(`${email}:${code}`)
   .digest();
 
-const createEmailTransporter = () => {
-  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD } = process.env;
+// Email is sent via the Brevo HTTP API (not SMTP) because Render's
+// outbound SMTP connections to Gmail time out on every port. Brevo works
+// over HTTPS, which Render can reach. Free plan: 300 emails/day to any
+// recipient — but the sender address must be verified in Brevo first
+// (Settings -> Senders, Domains & Dedicated IPs -> Senders). Resend was
+// dropped 2026-11-09: its testing-mode account could only send to the
+// account owner's own address (403 validation_error for every other
+// recipient), so no other user could ever receive an OTP.
+const sendEmailViaBrevo = async ({ to, subject, text }) => {
   const configurationError = getEmailConfigurationError();
   if (configurationError) throw new Error(configurationError);
 
-  return nodemailer.createTransport({
-    host: SMTP_HOST,
-    port: Number(SMTP_PORT),
-    secure: process.env.SMTP_SECURE === 'true',
-    auth: {
-      user: SMTP_USER,
-      pass: SMTP_PASSWORD,
+  const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: {
+      'api-key': process.env.BREVO_API_KEY,
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
     },
+    body: JSON.stringify({
+      sender: { name: 'LocalKart', email: process.env.BREVO_FROM },
+      to: [{ email: to }],
+      subject,
+      textContent: text,
+    }),
   });
+
+  if (!response.ok) {
+    const detail = await response.text().catch(() => '');
+    throw new Error(`Email sending failed (${response.status}): ${detail}`);
+  }
 };
 
 const sendVerificationEmail = async (email, code) => {
-  const transporter = createEmailTransporter();
-  await transporter.sendMail({
-    from: process.env.EMAIL_FROM || process.env.SMTP_USER,
+  await sendEmailViaBrevo({
     to: email,
     subject: 'Your LocalKart verification code',
     text: `Your LocalKart verification code is ${code}. It expires in 10 minutes. If you did not request this code, you can ignore this email.`,
@@ -69,9 +78,7 @@ const sendVerificationEmail = async (email, code) => {
 };
 
 const sendPasswordResetEmail = async (email, code) => {
-  const transporter = createEmailTransporter();
-  await transporter.sendMail({
-    from: process.env.EMAIL_FROM || process.env.SMTP_USER,
+  await sendEmailViaBrevo({
     to: email,
     subject: 'Reset your LocalKart password',
     text: `Your LocalKart password reset code is ${code}. It expires in 10 minutes. If you did not request a password reset, you can ignore this email.`,
@@ -96,7 +103,7 @@ const forgotPassword = async (req, res) => {
     const isWithinSendWindow = reset
       && now.getTime() - reset.sendWindowStartedAt.getTime() < SEND_LIMIT_WINDOW_MS;
 
-    if (reset && now.getTime() - reset.lastSentAt.getTime() < RESEND_COOLDOWN_MS) {
+    if (reset && now.getTime() - reset.lastSentAt.getTime() < EMAIL_SEND_COOLDOWN_MS) {
       return res.status(429).json({ message: 'Please wait a minute before requesting another code.' });
     }
     if (isWithinSendWindow && reset.sendCount >= MAX_SENDS_PER_WINDOW) {
@@ -267,8 +274,18 @@ const registerUser = async (req, res) => {
       });
     }
 
-    if (process.env.CAMPUS_NAME && cleanCollege.toLowerCase() !== process.env.CAMPUS_NAME.trim().toLowerCase()) {
-      return res.status(403).json({ message: `LocalKart is currently only available to ${process.env.CAMPUS_NAME.trim()} students` });
+    // Lenient campus match: accept any reasonable variation of the campus
+    // name, e.g. "GLA", "GLA University", "GLA University Mathura",
+    // "GLA University Mathura Uttar Pradesh". The campus key is the first
+    // word of CAMPUS_NAME and must appear as a whole word in the input, so
+    // "Glasgow" does not match "GLA".
+    const campusName = process.env.CAMPUS_NAME?.trim();
+    if (campusName) {
+      const campusKey = campusName.split(/\s+/)[0].toLowerCase();
+      const collegeWords = cleanCollege.toLowerCase().split(/[\s,]+/).filter(Boolean);
+      if (!collegeWords.includes(campusKey)) {
+        return res.status(403).json({ message: `LocalKart is currently only available to ${campusName} students` });
+      }
     }
 
     if (!EMAIL_PATTERN.test(cleanEmail) || cleanEmail.length > 254) {
@@ -297,7 +314,7 @@ const registerUser = async (req, res) => {
     const isWithinSendWindow = verification
       && now.getTime() - verification.sendWindowStartedAt.getTime() < SEND_LIMIT_WINDOW_MS;
 
-    if (verification && now.getTime() - verification.lastSentAt.getTime() < RESEND_COOLDOWN_MS) {
+    if (verification && now.getTime() - verification.lastSentAt.getTime() < EMAIL_SEND_COOLDOWN_MS) {
       return res.status(429).json({ message: 'Please wait a minute before requesting another code.' });
     }
 
