@@ -2,6 +2,10 @@ import React, { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
+import ImageAdjuster from '../components/ImageAdjuster';
+import '../components/ImageAdjuster.css';
+
+let photoKeyCounter = 0;
 
 export default function SellPage() {
   const { user } = useAuth();
@@ -14,7 +18,8 @@ export default function SellPage() {
     description: '',
     location: '',
   });
-  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [photos, setPhotos] = useState([]);
+  const [adjustingKey, setAdjustingKey] = useState(null);
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const submittingRef = useRef(false);
@@ -55,6 +60,40 @@ export default function SellPage() {
     }
   };
 
+  const handleFiles = (e) => {
+    const incoming = Array.from(e.target.files || []);
+    e.target.value = '';
+    if (!incoming.length) return;
+    setPhotos((current) => {
+      const room = Math.max(0, 5 - current.length);
+      const added = incoming.slice(0, room).map((file) => ({
+        key: `photo-${Date.now()}-${photoKeyCounter++}`,
+        file,
+        url: URL.createObjectURL(file),
+      }));
+      return [...current, ...added];
+    });
+  };
+
+  const removePhoto = (key) => {
+    setPhotos((current) => {
+      const removed = current.find((photo) => photo.key === key);
+      if (removed) URL.revokeObjectURL(removed.url);
+      return current.filter((photo) => photo.key !== key);
+    });
+  };
+
+  const applyCrop = (key, croppedFile) => {
+    setPhotos((current) =>
+      current.map((photo) => {
+        if (photo.key !== key) return photo;
+        URL.revokeObjectURL(photo.url);
+        return { ...photo, file: croppedFile, url: URL.createObjectURL(croppedFile) };
+      })
+    );
+    setAdjustingKey(null);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (submittingRef.current) return;
@@ -67,8 +106,8 @@ export default function SellPage() {
     const form = new FormData();
     Object.entries(formData).forEach(([key, value]) => form.append(key, value));
 
-    for (let i = 0; i < selectedFiles.length; i++) {
-      form.append('images', selectedFiles[i]);
+    for (const photo of photos) {
+      form.append('images', photo.file);
     }
 
     submittingRef.current = true;
@@ -88,7 +127,10 @@ export default function SellPage() {
         description: '',
         location: '',
       });
-      setSelectedFiles([]);
+      setPhotos((current) => {
+        current.forEach((photo) => URL.revokeObjectURL(photo.url));
+        return [];
+      });
       if (imageInputRef.current) imageInputRef.current.value = '';
     } catch (error) {
       setMessage(error.response?.data?.message || 'Failed to create listing');
@@ -97,6 +139,8 @@ export default function SellPage() {
       setIsSubmitting(false);
     }
   };
+
+  const adjustingPhoto = photos.find((photo) => photo.key === adjustingKey);
 
   return (
     <div className="auth-page">
@@ -203,10 +247,34 @@ export default function SellPage() {
               type="file"
               multiple
               accept="image/jpeg,image/png,image/webp"
-              onChange={(e) => setSelectedFiles(Array.from(e.target.files || []).slice(0, 5))}
+              onChange={handleFiles}
             />
-            <span className="field-hint">Up to 5 JPG, PNG or WEBP photos. Each file can be up to 5 MB.</span>
+            <span className="field-hint">Up to 5 JPG, PNG or WEBP photos. Each file can be up to 5 MB. Use Adjust to frame each photo to the card ratio before publishing.</span>
           </label>
+
+          {photos.length > 0 && (
+            <div className="photo-thumbs">
+              {photos.map((photo) => (
+                <div className="photo-thumb" key={photo.key}>
+                  <button
+                    type="button"
+                    className="photo-thumb-remove"
+                    onClick={() => removePhoto(photo.key)}
+                    aria-label={`Remove ${photo.file.name}`}
+                  >
+                    ✕
+                  </button>
+                  <img src={photo.url} alt={photo.file.name} />
+                  <span className="photo-thumb-name">{photo.file.name}</span>
+                  <div className="photo-thumb-actions">
+                    <button type="button" className="btn btn-light" onClick={() => setAdjustingKey(photo.key)}>
+                      Adjust
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           {message && <p className={`form-message${message.startsWith('Your item is live') ? ' success-message' : ''}`} role="status">{message}</p>}
 
@@ -215,6 +283,14 @@ export default function SellPage() {
           </button>
           <Link className="auth-back-link" to="/dashboard">Back to your dashboard</Link>
         </form>
+
+        {adjustingPhoto && (
+          <ImageAdjuster
+            file={adjustingPhoto.file}
+            onApply={(croppedFile) => applyCrop(adjustingKey, croppedFile)}
+            onClose={() => setAdjustingKey(null)}
+          />
+        )}
       </div>
     </div>
   );
